@@ -1,0 +1,151 @@
+// LearnX AI — Prisma schema
+// A free AI-powered learning platform inspired by Turbo AI.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A subject / category used to organize study sets.
+model Subject {
+  id        String     @id @default(cuid())
+  name      String
+  color     String     @default("violet")
+  icon      String     @default("BookOpen")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  studySets StudySet[]
+}
+
+/// A study set is the central object: it has source content + AI-generated notes/flashcards/quiz/podcast.
+model StudySet {
+  id          String      @id @default(cuid())
+  title       String
+  description String      @default("")
+  sourceType  String      @default("text") // text | topic | paste
+  sourceContent String    @default("") // the original material
+  notes       String      @default("") // AI-generated markdown notes
+  subjectId   String?
+  subject     Subject?    @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  tags        String      @default("") // comma separated
+  favorite    Boolean     @default(false)
+  shareToken  String?     @unique // for read-only public sharing
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  flashcards  Flashcard[]
+  quizzes     Quiz[]
+  podcasts    Podcast[]
+  noteVersions NoteVersion[]
+  activities  StudyActivity[]
+}
+
+/// A snapshot of notes saved whenever notes are (re)generated.
+model NoteVersion {
+  id          String   @id @default(cuid())
+  studySetId  String
+  studySet    StudySet @relation(fields: [studySetId], references: [id], onDelete: Cascade)
+  notes       String
+  difficulty  String   @default("intermediate")
+  length      String   @default("standard")
+  language    String   @default("en")
+  createdAt   DateTime @default(now())
+}
+
+/// A flashcard with spaced-repetition (SM-2-ish) scheduling fields.
+model Flashcard {
+  id           String    @id @default(cuid())
+  studySetId   String
+  studySet     StudySet  @relation(fields: [studySetId], references: [id], onDelete: Cascade)
+  front        String
+  back         String
+  // SRS scheduling
+  repetitions  Int       @default(0)
+  intervalDays Int       @default(1)
+  easeFactor   Float     @default(2.5)
+  dueAt        DateTime  @default(now())
+  lastReviewed DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+/// A quiz belonging to a study set.
+model Quiz {
+  id          String         @id @default(cuid())
+  studySetId  String
+  studySet    StudySet       @relation(fields: [studySetId], references: [id], onDelete: Cascade)
+  title       String
+  difficulty  String         @default("medium") // easy | medium | hard
+  createdAt   DateTime       @default(now())
+  questions   QuizQuestion[]
+  attempts    QuizAttempt[]
+}
+
+model QuizQuestion {
+  id            String   @id @default(cuid())
+  quizId        String
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  type          String   @default("multiple_choice") // multiple_choice | true_false
+  question      String
+  optionsJson  String   @default("[]") // JSON-encoded array of strings
+  correctIndex Int      @default(0)
+  explanation  String   @default("")
+  order        Int      @default(0)
+}
+
+model QuizAttempt {
+  id            String   @id @default(cuid())
+  quizId        String
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  score         Int      @default(0) // number correct
+  totalQuestions Int     @default(0)
+  answersJson   String   @default("[]") // JSON of {questionId, selectedIndex, correct}
+  durationSec   Int      @default(0)
+  createdAt     DateTime @default(now())
+}
+
+/// AI-generated podcast for a study set (script + audio).
+model Podcast {
+  id          String   @id @default(cuid())
+  studySetId  String
+  studySet    StudySet @relation(fields: [studySetId], references: [id], onDelete: Cascade)
+  title       String
+  script      String   @default("")
+  audioBase64 String   @default("") // base64-encoded audio (for simplicity)
+  voice       String   @default("default")
+  durationSec Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+/// A chat session with the AI tutor.
+model ChatSession {
+  id        String        @id @default(cuid())
+  title     String        @default("New chat")
+  subject   String        @default("")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String      // user | assistant
+  content   String
+  createdAt DateTime    @default(now())
+}
+
+/// Activity log for analytics / dashboard stats.
+model StudyActivity {
+  id         String    @id @default(cuid())
+  studySetId String?
+  studySet   StudySet? @relation(fields: [studySetId], references: [id], onDelete: SetNull)
+  type       String    // study | quiz | flashcard | chat | podcast | notes
+  detail     String    @default("")
+  score      Int       @default(0)
+  createdAt  DateTime  @default(now())
+}

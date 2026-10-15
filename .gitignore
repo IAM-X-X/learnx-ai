@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+build/
+
+# Production
+dist-electron/
+
+# Environment
+.env
+.env.local
+.env.development
+.env.production
+
+# Database
+db/*.db
+db/*.db-journal
+
+# Logs
+dev.log
+server.log
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Cache
+.cache/
+.turbo/
+
+# Prisma generated (regenerated on build)
+node_modules/.prisma/
+
+# Screenshots (keep them actually — useful for store listings)
+# screenshots/
+
+# Download folder
+download/

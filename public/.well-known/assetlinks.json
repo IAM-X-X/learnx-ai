@@ -1,0 +1,17 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "web",
+      "site": "https://learnx.ai",
+      "site_patterns": ["https://learnx.ai/*", "https://*.learnx.ai/*"]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "web",
+      "site": "https://learnx.ai"
+    }
+  }
+]

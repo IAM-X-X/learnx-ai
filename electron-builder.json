@@ -1,0 +1,79 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "ai.learnx.desktop",
+  "productName": "LearnX AI",
+  "copyright": "Copyright © 2026 LearnX AI",
+  "directories": {
+    "output": "dist-electron",
+    "buildResources": "electron/build"
+  },
+  "files": [
+    "electron/main.js",
+    ".next/standalone/**/*",
+    ".next/static/**/*",
+    "public/**/*",
+    "prisma/**/*",
+    "db/**/*",
+    "node_modules/.prisma/**/*",
+    "node_modules/@prisma/client/**/*",
+    "node_modules/pdf-parse/**/*",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "public",
+      "to": "public"
+    }
+  ],
+  "win": {
+    "icon": "public/icon-512.png",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "artifactName": "LearnX-AI-Setup-${version}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "LearnX AI",
+    "installerIcon": "public/icon-512.png",
+    "uninstallerIcon": "public/icon-512.png",
+    "installerHeaderIcon": "public/icon-512.png"
+  },
+  "mac": {
+    "icon": "public/icon-512.png",
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["x64", "arm64"]
+      }
+    ],
+    "category": "public.app-category.education",
+    "artifactName": "LearnX-AI-${version}.${ext}"
+  },
+  "dmg": {
+    "icon": "public/icon-512.png",
+    "title": "LearnX AI ${version}"
+  },
+  "linux": {
+    "icon": "public/icon-512.png",
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": ["x64"]
+      },
+      {
+        "target": "deb",
+        "arch": ["x64"]
+      }
+    ],
+    "category": "Education",
+    "artifactName": "LearnX-AI-${version}.${ext}"
+  },
+  "publish": null
+}

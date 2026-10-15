@@ -1,0 +1,87 @@
+{
+  "packageId": "ai.learnx.twa",
+  "host": "learnx.ai",
+  "name": "LearnX AI — Learn anything, faster",
+  "launcherName": "LearnX AI",
+  "display": "standalone",
+  "orientation": "default",
+  "themeColor": "#7c3aed",
+  "themeColorDark": "#0f0a1a",
+  "navigationColor": "#7c3aed",
+  "navigationColorDark": "#0f0a1a",
+  "navigationDividerColor": "#7c3aed",
+  "navigationDividerColorDark": "#0f0a1a",
+  "backgroundColor": "#faf9fb",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://learnx.ai/icon-512.png",
+  "maskableIconUrl": "https://learnx.ai/icon-512-maskable.png",
+  "monochromeIconUrl": "",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "/path/to/android.keystore",
+    "createSigningKey": true,
+    "alias": "learnx",
+    "keyPassword": "REPLACE_WITH_YOUR_KEY_PASSWORD",
+    "keystorePassword": "REPLACE_WITH_YOUR_KEYSTORE_PASSWORD"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "shortName": "Home",
+      "url": "/?view=dashboard",
+      "iconUrl": "https://learnx.ai/icon-96.png",
+      "maskableIconUrl": "https://learnx.ai/icon-96.png"
+    },
+    {
+      "name": "AI Tutor",
+      "shortName": "Tutor",
+      "url": "/?view=tutor",
+      "iconUrl": "https://learnx.ai/icon-96.png",
+      "maskableIconUrl": "https://learnx.ai/icon-96.png"
+    },
+    {
+      "name": "Flashcards",
+      "shortName": "Cards",
+      "url": "/?view=flashcards",
+      "iconUrl": "https://learnx.ai/icon-96.png",
+      "maskableIconUrl": "https://learnx.ai/icon-96.png"
+    },
+    {
+      "name": "Practice",
+      "shortName": "Practice",
+      "url": "/?view=practice",
+      "iconUrl": "https://learnx.ai/icon-96.png",
+      "maskableIconUrl": "https://learnx.ai/icon-96.png"
+    },
+    {
+      "name": "Library",
+      "shortName": "Library",
+      "url": "/?view=library",
+      "iconUrl": "https://learnx.ai/icon-96.png",
+      "maskableIconUrl": "https://learnx.ai/icon-96.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://learnx.ai/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": false,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://learnx.ai/",
+  "minSdkVersion": 21,
+  "_comment_signingKey": "Replace the path/passwords with your own keystore. Run `bubblewrap build` to generate the signing key and build the AAB."
+}

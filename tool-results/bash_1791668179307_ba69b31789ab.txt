@@ -1,0 +1,871 @@
+🚀 Sending vision chat request...
+✅ File saved to: /tmp/dash_review2.json
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnX Dashboard</title>
+    <style>
+        :root {
+            --bg-body: #f3f4f6;
+            --bg-sidebar: #ffffff;
+            --text-main: #111827;
+            --text-secondary: #6b7280;
+            --primary: #4f46e5;
+            --primary-light: #e0e7ff;
+            --border-color: #e5e7eb;
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            
+            /* Status Colors */
+            --color-study: #6366f1; /* Indigo */
+            --color-podcast: #ec4899; /* Pink */
+            --color-chat: #06b6d4; /* Cyan */
+            --color-quiz: #f59e0b; /* Amber */
+            --color-flashcard: #10b981; /* Emerald */
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            font-size: 14px;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .logo-text span { color: var(--primary); }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nav-item:hover { background-color: #f9fafb; color: var(--text-main); }
+        .nav-item.active {
+            background-color: var(--primary-light);
+            color: var(--primary);
+            font-weight: 500;
+        }
+        .nav-icon { 
+            width: 18px; 
+            height: 18px; 
+            margin-right: 12px; 
+            fill: currentColor;
+            opacity: 0.8;
+        }
+        .nav-content h4 { font-size: 14px; font-weight: 500; line-height: 1.2; }
+        .nav-content p { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+        .badge-new {
+            font-size: 9px;
+            background: #dcfce7;
+            color: #166534;
+            padding: 1px 4px;
+            border-radius: 4px;
+            margin-left: 6px;
+            vertical-align: middle;
+            font-weight: bold;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        .promo-box {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .promo-title { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;}
+        .promo-text { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+
+        /* --- Main Content --- */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        header {
+            background: var(--bg-body); /* Matches body to look seamless or slightly distinct */
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+        .header-left h1 { font-size: 20px; font-weight: 700; }
+        .header-left p { font-size: 13px; color: var(--text-secondary); }
+        
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+        .btn-search {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-main);
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .icon-btn { background: none; border: none; cursor: pointer; color: var(--text-secondary); }
+
+        .content-area {
+            padding: 0 32px 32px 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(to right, #ffffff, #f9fafb);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-tag { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .hero-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
+        .hero-desc { color: var(--text-secondary); max-width: 600px; line-height: 1.5; margin-bottom: 20px; font-size: 14px; }
+        .hero-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .hero-gradient-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #4338ca 0%, #059669 100%);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+        .stat-icon-bg {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .stat-value { font-size: 24px; font-weight: 700; margin-bottom: 2px; }
+        .stat-label { font-size: 12px; color: var(--text-secondary); }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .action-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .action-card:hover { border-color: #d1d5db; }
+        .action-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .action-info h3 { font-size: 14px; font-weight: 600; }
+        .action-info p { font-size: 12px; color: var(--text-secondary); }
+        .arrow { margin-left: auto; color: #9ca3af; }
+
+        /* Bottom Grid (Recent Sets + Activity) */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .section-title { font-size: 16px; font-weight: 700; }
+        .view-all { font-size: 13px; color: var(--text-secondary); text-decoration: none; display: flex; align-items: center; gap: 4px;}
+
+        .study-set-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+        .set-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .set-title { font-size: 16px; font-weight: 700; }
+        .set-tag { 
+            background: #f3f4f6; 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 11px; 
+            color: var(--text-secondary);
+            align-self: flex-start;
+            margin-bottom: 20px;
+        }
+        .set-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; }
+        .set-tags-row { display: flex; gap: 8px; }
+        .mini-pill {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 4px 10px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Right Column Widgets */
+        .widget-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .widget-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-weight: 700; font-size: 14px; }
+        .widget-sub { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; }
+
+        /* Chart Implementation */
+        .chart-container {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 120px;
+            padding-top: 10px;
+            position: relative;
+        }
+        .chart-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            height: 100%;
+            justify-content: flex-end;
+        }
+        .bar-wrapper {
+            width: 100%;
+            height: 90%; /* Space for labels */
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            position: relative;
+        }
+        .bar {
+            width: 70%;
+            background-color: #e5e7eb; /* Default gray */
+            border-radius: 4px 4px 0 0;
+            transition: height 0.3s ease;
+            position: relative;
+            min-height: 4px; /* Ensure visibility even if value is 0 or very low */
+        }
+        /* Specific bar colors based on screenshot logic (if any) or uniform style */
+        /* Screenshot shows mostly gray bars, maybe active one is colored? Let's stick to neutral with hover effects */
+        .bar:hover { filter: brightness(0.95); }
+        
+        .bar-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            height: 16px;
+        }
+        .count-label {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Activity List */
+        .activity-list { list-style: none; }
+        .activity-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .activity-item:last-child { border-bottom: none; }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+        .act-content h4 { font-size: 13px; font-weight: 500; line-height: 1.3; margin-bottom: 2px; }
+        .act-meta { font-size: 11px; color: #9ca3af; }
+
+        /* --- Modal Overlay (The "Quick Jump" / Command Palette) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(2px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            padding-top: 15vh;
+        }
+        .modal-window {
+            background: white;
+            width: 480px;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            animation: slideUp 0.2s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-input-wrap {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .modal-input {
+            border: none;
+            outline: none;
+            font-size: 14px;
+            width: 100%;
+            color: var(--text-main);
+        }
+        .modal-close { cursor: pointer; color: #9ca3af; }
+        .modal-list { max-height: 300px; overflow-y: auto; }
+        .modal-section-title {
+            padding: 8px 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        .modal-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .modal-item:hover { background-color: #f9fafb; }
+        .modal-item.selected {
+            background-color: #dcfce7; /* Light green highlight as per screenshot */
+        }
+        .modal-item-icon { margin-right: 12px; color: #6b7280; width: 16px; }
+        .modal-item-text { flex: 1; font-size: 14px; }
+        .modal-shortcut {
+            font-size: 11px;
+            color: #9ca3af;
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* Footer */
+        footer {
+            padding: 16px 32px;
+            border-top: 1px solid var(--border-color);
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="logo-area">
+            <div class="logo-icon">L</div>
+            <div class="logo-text">Learn<span>X</span></div>
+        </div>
+
+        <nav>
+            <a href="#" class="nav-item active">
+                <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                <div class="nav-content">
+                    <h4>Dashboard</h4>
+                    <p>Your study overview</p>
+                </div>
+                <div style="margin-left:auto; width:6px;height:6px;background:var(--primary);border-radius:50%"></div>
+            </a>
+            <a href="#" class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                <div class="nav-content">
+                    <h4>AI Tutor</h4>
+                    <p>Chat with your AI tutor</p>
+                </div>
+            </a>
+            <a href="#" class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.89 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                <div class="nav-content">
+                    <h4>Notes</h4>
+                    <p>Generate study notes</p>
+                </div>
+            </a>
+            <a href="#" class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                <div class="nav-content">
+                    <h4>Summarize <span class="badge-new">NEW</span></h4>
+                    <p>Quick TLDR & key points</p>
+                </div>
+            </a>
+            <a href="#" class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/></svg>
+                <div class="nav-content">
+                    <h4>Flashcards</h4>
+                    <p>Spaced repetition</p>
+                </div>
+            </a>
+            <a href="#" class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
+                <div class="nav-content">
+                    <h4>Quiz</h4>
+                    <p>Test your knowledge</p>
+                </div>
+            </a>
+             <a href="#" class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                <div class="nav-content">
+                    <h4>Podcast</h4>
+                    <p>Listen on the go</p>
+                </div>
+            </a>
+             <a href="#" class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+                <div class="nav-content">
+                    <h4>Progress <span class="badge-new">NEW</span></h4>
+                    <p>Analytics & goals</p>
+                </div>
+            </a>
+             <a href="#" class="nav-item">
+                <svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
+                <div class="nav-content">
+                    <h4>Library</h4>
+                    <p>All your study sets</p>
+                </div>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="promo-box">
+                <div class="promo-title">
+                    <span>✨</span> Free forever
+                </div>
+                <p class="promo-text">Sign-up: No limits. Your data stays on device.</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-wrapper">
+        <!-- Header -->
+        <header>
+            <div class="header-left">
+                <h1>Dashboard</h1>
+                <p>Your learning at a glance</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn-search">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    Quick jump
+                    <kbd style="font-size:10px; background:#eee; padding:1px 4px; border-radius:3px;">⌘K</kbd>
+                </button>
+                <button class="btn-primary">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New Study Set
+                </button>
+                <button class="icon-btn">
+                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <!-- Hero -->
+            <section class="hero-section">
+                <div class="hero-tag">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    Your free AI study companion
+                </div>
+                <h2 class="hero-title">Turn anything into <span style="background:linear-gradient(90deg, #4338ca, #059669); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">study material</span></h2>
+                <p class="hero-desc">LearnX AI takes any topic, article, or pasted notes and instantly builds everything you need to master it.</p>
+                <button class="hero-btn">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Create study set
+                </button>
+                <div class="hero-gradient-bar"></div>
+            </section>
+
+            <!-- Stats -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon-bg" style="background:#ede9fe; color:#7c3aed;">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                    </div>
+                    <div class="stat-value">1</div>
+                    <div class="stat-label">Study Sets</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon-bg" style="background:#dbeafe; color:#2563eb;">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                    </div>
+                    <div class="stat-value">0%</div>
+                    <div class="stat-label">Avg Score</div>
+                </div>
+                 <div class="stat-card">
+                    <div class="stat-icon-bg" style="background:#ffedd5; color:#ea580c;">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M17.66 8L12 2.35 6.34 8C4.78 9.56 4 11.64 4 13.77s.78 4.21 2.34 5.77C7.9 21.1 9.97 22 12.11 22s4.21-.9 5.77-2.46S20 16.23 20 14.1c0-2.13-.78-4.21-2.34-5.77zM6 14c0-1.66.67-3.16 1.76-4.24L12 5.54l4.24 4.26C17.33 10.88 18 12.38 18 14.04c0 1.66-.67 3.17-1.76 4.25-1.08 1.09-2.59 1.75-4.25 1.75s-3.17-.66-4.25-1.75C6.67 17.17 6 15.66 6 14z"/></svg>
+                    </div>
+                    <div class="stat-value">1d</div>
+                    <div class="stat-label">Streak</div>
+                </div>
+                <div class="stat-card"></div> <!-- Empty for spacing balance if needed, or just 3 items -->
+            </section>
+
+            <!-- Actions -->
+            <section class="quick-actions">
+                <div class="action-card">
+                    <div class="action-icon" style="background:#ede9fe; color:#7c3aed;">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                    </div>
+                    <div class="action-info">
+                        <h3>Ask AI Tutor</h3>
+                        <p>Get instant explanations</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </div>
+                <div class="action-card">
+                    <div class="action-icon" style="background:#fef3c7; color:#d97706;">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <div class="action-info">
+                        <h3>Take a Quiz</h3>
+                        <p>Test your knowledge</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </div>
+                <div class="action-card">
+                    <div class="action-icon" style="background:#fce7f3; color:#db2777;">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </div>
+                    <div class="action-info">
+                        <h3>Listen & Learn</h3>
+                        <p>AI-generated podcasts</p>
+                    </div>
+                    <span class="arrow">→</span>
+                </div>
+            </section>
+
+            <!-- Bottom Grid -->
+            <section class="bottom-grid">
+                <!-- Left Column: Recent Sets -->
+                <div>
+                    <div class="section-header">
+                        <h3 class="section-title">Recent study sets</h3>
+                        <a href="#" class="view-all">View all →</a>
+                    </div>
+                    
+                    <div class="study-set-card">
+                        <div class="set-header">
+                            <div class="set-title">The Cell: Structure & Function</div>
+                            <div style="display:flex; gap:8px; color:#9ca3af;">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                            </div>
+                        </div>
+                        <div class="set-tag">Biology</div>
+                        
+                        <div style="flex-grow:1;"></div>
+
+                        <div class="set-footer">
+                            <span style="color:var(--text-secondary); font-size:13px;">Seed study set</span>
+                            <div class="set-tags-row">
+                                <div class="mini-pill">📄 1</div>
+                                <div class="mini-pill">📝 8</div>
+                                <div class="mini-pill">🗂️ 1</div>
+                                <div class="mini-pill">🎧 1</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Widgets -->
+                <div>
+                    <!-- Chart Widget -->
+                    <div class="widget-card">
+                        <div class="widget-header">
+                             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                             This week
+                        </div>
+                        <div class="widget-sub">6 activities this week</div>
+                        
+                        <div class="chart-container">
+                            <!-- Su: 0 -->
+                            <div class="chart-col">
+                                <div class="bar-wrapper"><div class="bar" style="height: 4px;"></div></div>
+                                <div class="bar-label">Su</div>
+                            </div>
+                            <!-- Mo: 0 -->
+                            <div class="chart-col">
+                                <div class="bar-wrapper"><div class="bar" style="height: 4px;"></div></div>
+                                <div class="bar-label">Mo</div>
+                            </div>
+                            <!-- Tu: 0 -->
+                            <div class="chart-col">
+                                <div class="bar-wrapper"><div class="bar" style="height: 4px;"></div></div>
+                                <div class="bar-label">Tu</div>
+                            </div>
+                            <!-- We: 0 -->
+                            <div class="chart-col">
+                                <div class="bar-wrapper"><div class="bar" style="height: 4px;"></div></div>
+                                <div class="bar-label">We</div>
+                            </div>
+                            <!-- Th: 0 -->
+                            <div class="chart-col">
+                                <div class="bar-wrapper"><div class="bar" style="height: 4px;"></div></div>
+                                <div class="bar-label">Th</div>
+                            </div>
+                            <!-- Fr: 0 -->
+                            <div class="chart-col">
+                                <div class="bar-wrapper"><div class="bar" style="height: 4px;"></div></div>
+                                <div class="bar-label">Fr</div>
+                            </div>
+                            <!-- Sa: 6 (Active) -->
+                            <div class="chart-col">
+                                <div class="bar-wrapper">
+                                    <div class="bar" style="height: 80%; background-color: var(--primary);">
+                                        <span class="count-label">6</span>
+                                    </div>
+                                </div>
+                                <div class="bar-label" style="color:var(--primary); font-weight:600;">Sa</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity Widget -->
+                    <div class="widget-card">
+                         <div class="widget-header">
+                             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                             Recent activity
+                        </div>
+                        
+                        <ul class="activity-list">
+                            <li class="activity-item">
+                                <div class="dot" style="background:var(--color-study)"></div>
+                                <div class="act-content">
+                                    <h4>Study · Generated summary (standard)</h4>
+                                    <div class="act-meta">10/10/2026, 9:33:17 PM · The Cell: Structure & Function</div>
+                                </div>
+                            </li>
+                            <li class="activity-item">
+                                <div class="dot" style="background:var(--color-podcast)"></div>
+                                <div class="act-content">
+                                    <h4>Podcast · Generated podcast (with audio)</h4>
+                                    <div class="act-meta">10/10/2026, 9:17:52 PM · The Cell: Structure & Function</div>
+                                </div>
+                            </li>
+                            <li class="activity-item">
+                                <div class="dot" style="background:var(--color-chat)"></div>
+                                <div class="act-content">
+                                    <h4>Chat · Asked: Explain photosynthesis like I'm...</h4>
+                                    <div class="act-meta">10/10/2026, 9:13:30 PM</div>
+                                </div>
+                            </li>
+                            <li class="activity-item">
+                                <div class="dot" style="background:var(--color-chat)"></div>
+                                <div class="act-content">
+                                    <h4>Chat · Asked: Explain photosynthesis like I'm...</h4>
+                                    <div class="act-meta">10/10/2026, 9:11:42 PM</div>
+                                </div>
+                            </li>
+                            <li class="activity-item">
+                                <div class="dot" style="background:var(--color-quiz)"></div>
+                                <div class="act-content">
+                                    <h4>Quiz · Quiz attempt: 3/6</h4>
+                                    <div class="act-meta">10/10/2026, 9:11:20 PM</div>
+                                </div>
+                            </li>
+                             <li class="activity-item">
+                                <div class="dot" style="background:var(--color-flashcard)"></div>
+                                <div class="act-content">
+                                    <h4>Flashcard · Reviewed card</h4>
+                                    <div class="act-meta">10/10/2026, 9:08:12 PM</div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <div>✨ LearnX AI · Free forever · No sign-up required</div>
+            <div>Built with ❤️ for learners everywhere</div>
+        </footer>
+    </main>
+
+    <!-- MODAL OVERLAY -->
+    <div class="modal-overlay">
+        <div class="modal-window">
+            <div class="modal-input-wrap">
+                <svg width="16" height="16" fill="none" stroke="#9ca3af" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" class="modal-input" placeholder="Type a command or search..." autofocus>
+                <span class="modal-close">×</span>
+            </div>
+            <div class="modal-list">
+                <div class="modal-section-title">Navigate</div>
+                
+                <div class="modal-item selected">
+                    <svg class="modal-item-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                    <span class="modal-item-text">Dashboard</span>
+                    <span class="modal-shortcut">Alt+1</span>
+                </div>
+                <div class="modal-item">
+                    <svg class="modal-item-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                    <span class="modal-item-text">AI Tutor</span>
+                    <span class="modal-shortcut">Alt+2</span>
+                </div>
+                <div class="modal-item">
+                    <svg class="modal-item-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.89 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                    <span class="modal-item-text">Notes</span>
+                    <span class="modal-shortcut">Alt+3</span>
+                </div>
+                <div class="modal-item">
+                    <svg class="modal-item-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                    <span class="modal-item-text">Summarize</span>
+                    <span class="modal-shortcut">Alt+4</span>
+                </div>
+                <div class="modal-item">
+                    <svg class="modal-item-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/></svg>
+                    <span class="modal-item-text">Flashcards</span>
+                    <span class="modal-shortcut">Alt+5</span>
+                </div>
+                <div class="modal-item">
+                    <svg class="modal-item-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
+                    <span class="modal-item-text">Quiz</span>
+                    <span class="modal-shortcut">Alt+6</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
+```

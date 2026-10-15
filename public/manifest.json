@@ -1,0 +1,81 @@
+{
+  "name": "LearnX AI — Learn anything, faster",
+  "short_name": "LearnX AI",
+  "description": "Turn any topic, article, or pasted notes into AI-generated study notes, flashcards, quizzes, and podcasts. Free, no sign-up. Learn faster with spaced repetition, an AI tutor, and progress tracking.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#faf9fb",
+  "theme_color": "#7c3aed",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["education", "productivity", "learning"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Home",
+      "description": "View your study overview and daily learning path",
+      "url": "/?view=dashboard",
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "AI Tutor",
+      "short_name": "Tutor",
+      "description": "Chat with your AI study tutor",
+      "url": "/?view=tutor",
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Flashcards",
+      "short_name": "Cards",
+      "description": "Review due flashcards",
+      "url": "/?view=flashcards",
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Practice",
+      "short_name": "Practice",
+      "description": "Adaptive mixed review session",
+      "url": "/?view=practice",
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Library",
+      "short_name": "Library",
+      "description": "Browse all your study sets",
+      "url": "/?view=library",
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
