@@ -23,9 +23,11 @@ function createPrismaClient(): PrismaClient {
     return new PrismaClient({ adapter })
   }
 
-  // Otherwise use regular SQLite (local dev)
+  // If DATABASE_URL is not set (e.g. during Vercel build), use a temporary file
+  const fallbackUrl = dbUrl || 'file:./db/custom.db'
   return new PrismaClient({
-    log: ['query'],
+    log: process.env.NODE_ENV !== 'production' ? ['query'] : [],
+    datasources: { db: { url: fallbackUrl } },
   })
 }
 
