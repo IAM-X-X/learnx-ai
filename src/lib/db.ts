@@ -11,8 +11,13 @@ function createPrismaClient(): PrismaClient {
 
   // If it's a Turso/libSQL URL, use the adapter
   if (dbUrl.startsWith('libsql://')) {
-    const authToken = new URL(dbUrl).searchParams.get('authToken') || undefined
-    const baseUrl = dbUrl.split('?')[0]
+    // Parse manually — new URL() doesn't support libsql:// protocol
+    const [baseUrl, queryString] = dbUrl.split('?')
+    let authToken: string | undefined
+    if (queryString) {
+      const params = new URLSearchParams(queryString)
+      authToken = params.get('authToken') || undefined
+    }
     const libsql = createClient({ url: baseUrl, authToken })
     const adapter = new PrismaLibSql(libsql)
     return new PrismaClient({ adapter })
