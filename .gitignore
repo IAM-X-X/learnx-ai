@@ -15,7 +15,8 @@ dist-electron/
 .env
 .env.local
 .env.development
-.env.production
+# .env.production is intentionally committed — it contains the Turso DB URL
+# for Vercel to auto-read during production builds
 
 # Database
 db/*.db
