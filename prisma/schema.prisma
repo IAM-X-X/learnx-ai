@@ -2,7 +2,8 @@
 // A free AI-powered learning platform inspired by Turbo AI.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
