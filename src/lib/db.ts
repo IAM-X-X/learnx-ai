@@ -1,9 +1,9 @@
 // Lazy database client — connects to Turso on first query, never crashes during build
-/* eslint-disable @typescript-eslint/no-require-imports */
 import { PrismaClient } from '@prisma/client'
+import { PrismaLibSql } from '@prisma/adapter-libsql'
+import { createClient } from '@libsql/client'
 
-// Turso database connection — used as fallback when env var is not set
-// (e.g. on Vercel when env vars aren't configured properly)
+// Turso database connection
 const TURSO_URL = 'libsql://learnx-ai-iam-x-x.aws-eu-west-1.turso.io'
 const TURSO_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTIwODk0NjYsImlkIjoiMDFhMTQwZDctOTUwMS03MWYzLWE5YmItZWZkMmJmOGFlMDYyIiwia2lkIjoiY251dUlnd2ZrVERKSDRQWkVKVjdza25ZeDNfWGtZR0NqampUMGF0OEQtQSIsInJpZCI6IjI1NzMxYmFjLTY1MTktNDNjZi1hYTRiLTJlZGNmMWI4Y2JkMSJ9.vIeszM4TxCPraarsbjL15MRq3BrcytaXb5ZV0hECfEgTLiohf5K1pEJsQhBUGXkcC8NCSrPGTnVAcl7aVWICDA'
 
@@ -13,44 +13,35 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient(): PrismaClient {
-  // Use env var if available, otherwise use hardcoded Turso connection
   const dbUrl = process.env.DATABASE_URL || ''
 
-  // Determine the actual URL and token to use
-  let url = dbUrl
-  let token: string | undefined
-
-  if (dbUrl.startsWith('libsql://')) {
-    // Parse the Turso URL from env var
-    const [baseUrl, queryString] = dbUrl.split('?')
-    url = baseUrl
-    if (queryString) {
-      token = new URLSearchParams(queryString).get('authToken') || undefined
-    }
-  } else if (dbUrl.startsWith('file:')) {
-    // Local SQLite — use it directly
+  // Local SQLite for development
+  if (dbUrl.startsWith('file:')) {
     return new PrismaClient({
       log: process.env.NODE_ENV !== 'production' ? ['query'] : [],
       datasources: { db: { url: dbUrl } },
     })
-  } else {
-    // No valid env var — use hardcoded Turso connection
-    url = TURSO_URL
-    token = TURSO_TOKEN
+  }
+
+  // For Turso URLs (from env var or hardcoded)
+  let url = TURSO_URL
+  let token = TURSO_TOKEN
+
+  if (dbUrl.startsWith('libsql://')) {
+    const [baseUrl, queryString] = dbUrl.split('?')
+    url = baseUrl
+    if (queryString) {
+      token = new URLSearchParams(queryString).get('authToken') || TURSO_TOKEN
+    }
   }
 
   try {
-    const { PrismaLibSql } = require('@prisma/adapter-libsql')
-    const { createClient } = require('@libsql/client')
     const libsql = createClient({ url, authToken: token })
     const adapter = new PrismaLibSql(libsql)
     return new PrismaClient({ adapter })
   } catch (e) {
-    console.error('[DB] Failed to create PrismaClient with Turso:', e)
-    // Last resort — try local SQLite
-    return new PrismaClient({
-      datasources: { db: { url: 'file:./db/custom.db' } },
-    })
+    console.error('[DB] Turso connection failed:', e)
+    throw e
   }
 }
 
@@ -62,7 +53,7 @@ function getDb(): PrismaClient {
   return globalForPrisma.prisma!
 }
 
-// Proxy so the client is created lazily on first access — never during build
+// Proxy: creates the client lazily on first property access — never during build
 export const db = new Proxy({} as PrismaClient, {
   get(_target, prop) {
     const client = getDb()
