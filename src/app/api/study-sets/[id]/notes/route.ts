@@ -40,13 +40,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
 
-    const notes = await generateNotes({
-      title: set.title,
-      source: set.sourceContent,
-      difficulty,
-      length,
-      language,
-    });
+    let notes;
+    try {
+      notes = await generateNotes({
+        title: set.title,
+        source: set.sourceContent,
+        difficulty,
+        length,
+        language,
+      });
+    } catch (aiErr) {
+      console.error('AI call failed:', aiErr);
+      return NextResponse.json(
+        {
+          error: 'AI service unavailable.',
+          reason:
+            process.env.VERCEL === '1' && !process.env.GROQ_API_KEY
+              ? 'On Vercel, set GROQ_API_KEY env var (free at https://console.groq.com/keys). See /settings → AI Engine Status.'
+              : (aiErr as Error).message,
+        },
+        { status: 503 },
+      );
+    }
 
     const updated = await db.studySet.update({
       where: { id },

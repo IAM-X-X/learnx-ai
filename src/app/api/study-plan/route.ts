@@ -47,7 +47,22 @@ export async function POST(req: NextRequest) {
       availableSets.push({ title: s.title, cardsDue, lastScore });
     }
 
-    const plan = await generateStudyPlan({ goal, availableSets, dailyMinutes, daysAhead });
+    let plan;
+    try {
+      plan = await generateStudyPlan({ goal, availableSets, dailyMinutes, daysAhead });
+    } catch (aiErr) {
+      console.error('AI call failed:', aiErr);
+      return NextResponse.json(
+        {
+          error: 'AI service unavailable.',
+          reason:
+            process.env.VERCEL === '1' && !process.env.GROQ_API_KEY
+              ? 'On Vercel, set GROQ_API_KEY env var (free at https://console.groq.com/keys). See /settings → AI Engine Status.'
+              : (aiErr as Error).message,
+        },
+        { status: 503 },
+      );
+    }
 
     await db.studyActivity.create({
       data: { type: 'study', detail: `Generated study plan: ${goal.slice(0, 60)}` },

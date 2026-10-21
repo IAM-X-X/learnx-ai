@@ -43,7 +43,22 @@ export async function POST(req: NextRequest) {
       ? `${SYSTEM_PROMPT}\n\nThe user is currently studying: ${subjectContext}. Tailor examples to this subject when helpful.`
       : SYSTEM_PROMPT;
 
-    const reply = await chatMultiTurn(history, systemWithCtx);
+    let reply;
+    try {
+      reply = await chatMultiTurn(history, systemWithCtx);
+    } catch (aiErr) {
+      console.error('AI call failed:', aiErr);
+      return NextResponse.json(
+        {
+          error: 'AI service unavailable.',
+          reason:
+            process.env.VERCEL === '1' && !process.env.GROQ_API_KEY
+              ? 'On Vercel, set GROQ_API_KEY env var (free at https://console.groq.com/keys). See /settings → AI Engine Status.'
+              : (aiErr as Error).message,
+        },
+        { status: 503 },
+      );
+    }
 
     await db.chatMessage.create({
       data: { sessionId, role: 'assistant', content: reply },

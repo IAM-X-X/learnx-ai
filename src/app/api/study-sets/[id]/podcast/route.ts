@@ -18,23 +18,48 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!set) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
     const notesSource = set.notes || set.sourceContent;
-    const script = await generatePodcastScript({ title: set.title, notes: notesSource });
+    let script;
+    try {
+      script = await generatePodcastScript({ title: set.title, notes: notesSource });
+    } catch (aiErr) {
+      console.error('AI call failed:', aiErr);
+      return NextResponse.json(
+        {
+          error: 'AI service unavailable.',
+          reason:
+            process.env.VERCEL === '1' && !process.env.GROQ_API_KEY
+              ? 'On Vercel, set GROQ_API_KEY env var (free at https://console.groq.com/keys). See /settings → AI Engine Status.'
+              : (aiErr as Error).message,
+        },
+        { status: 503 },
+      );
+    }
 
     let audioBase64 = '';
     let durationSec = 0;
     let audioError = '';
     if (generateAudio) {
-      try {
-        const { buffer, durationSec: d } = await synthesizeSpeechChunks(script, voice, 1.0);
-        if (buffer.length === 0) {
-          audioError = 'Audio generation failed — the TTS service may be rate-limited. Please try again in a minute.';
-        } else {
-          audioBase64 = buffer.toString('base64');
-          durationSec = d;
+      // Audio synthesis only works in the dev sandbox (Z.AI internal TTS API).
+      // On Vercel or any public cloud it's unreachable — fail gracefully.
+      const onVercel = process.env.VERCEL === '1';
+      if (onVercel) {
+        audioError =
+          'Audio synthesis is only available in the dev sandbox (Z.AI internal TTS API is unreachable from Vercel). The script was generated successfully — you can read it below or generate audio locally.';
+      } else {
+        try {
+          const { buffer, durationSec: d } = await synthesizeSpeechChunks(script, voice, 1.0);
+          if (buffer.length === 0) {
+            audioError = 'Audio generation failed — the TTS service may be rate-limited. Please try again in a minute.';
+          } else {
+            audioBase64 = buffer.toString('base64');
+            durationSec = d;
+          }
+        } catch (err) {
+          console.error('podcast audio failed', err);
+          audioError =
+            'Audio synthesis is only available in the dev sandbox (Z.AI internal TTS API is unreachable from this environment). ' +
+            (err as Error).message;
         }
-      } catch (err) {
-        console.error('podcast audio failed', err);
-        audioError = (err as Error).message;
       }
     }
 

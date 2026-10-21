@@ -101,7 +101,17 @@ export async function POST(req: NextRequest) {
           }
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
         } catch (e) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: (e as Error).message })}\n\n`));
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                error: 'AI service unavailable.',
+                reason:
+                  process.env.VERCEL === '1' && !process.env.GROQ_API_KEY
+                    ? 'On Vercel, set GROQ_API_KEY env var (free at https://console.groq.com/keys). See /settings → AI Engine Status.'
+                    : (e as Error).message,
+              })}\n\n`,
+            ),
+          );
         } finally {
           // persist the full assistant reply
           if (fullReply.trim()) {

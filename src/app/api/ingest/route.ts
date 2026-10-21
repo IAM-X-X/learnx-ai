@@ -39,7 +39,22 @@ export async function POST(req: NextRequest) {
       } catch {
         return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
       }
-      const result = await invokeFunction<{ data?: { title?: string; html?: string; url?: string; publishedTime?: string } }>('page_reader', { url: normalized });
+      let result: { data?: { title?: string; html?: string; url?: string; publishedTime?: string } };
+      try {
+        result = await invokeFunction<{ data?: { title?: string; html?: string; url?: string; publishedTime?: string } }>('page_reader', { url: normalized });
+      } catch (aiErr) {
+        console.error('AI call failed:', aiErr);
+        return NextResponse.json(
+          {
+            error: 'AI service unavailable.',
+            reason:
+              process.env.VERCEL === '1'
+                ? 'URL ingestion uses the Z.AI internal page_reader function, which is only reachable from the dev sandbox. It is not available on Vercel (or any public cloud). Try a file upload (PDF/TXT/MD) instead, or run locally.'
+                : (aiErr as Error).message,
+          },
+          { status: 503 },
+        );
+      }
       const data = result?.data;
       if (!data || !data.html) {
         return NextResponse.json({ error: 'Could not extract content from that URL.' }, { status: 422 });
