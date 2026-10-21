@@ -4,9 +4,6 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 
-// Force dynamic rendering — prevents Next.js from trying to prerender pages
-// during build (which would trigger database connections)
-export const dynamic = 'force-dynamic';
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
 
