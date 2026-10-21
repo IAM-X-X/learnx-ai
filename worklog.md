@@ -551,3 +551,31 @@ Stage Summary:
 - LearnX AI is now packaged as a desktop app (Electron) with Windows/Mac/Linux installer configs, ready for Softonic distribution.
 - Combined with the PWA + TWA setup from Task ID 13, the app is ready for ALL distribution channels: Play Store (Android APK/AAB), Softonic (desktop .exe/.dmg/.AppImage + Android APK), and direct web/PWA install.
 - The user needs to: 1) build on target platforms, 2) register a Softonic developer account, 3) upload installers + screenshots.
+
+---
+Task ID: AI-FALLBACKS
+Agent: general-purpose
+Task: Add graceful AI failure fallbacks to all AI-dependent routes
+
+Work Log:
+- Read prior worklog context (Tasks 0-13). LearnX AI uses a custom `src/lib/zai-client.ts` HTTP client with two providers: Z.AI (dev sandbox only, internal API unreachable from public clouds) and Groq (Vercel-compatible when `GROQ_API_KEY` is set). Without a provider, every AI call throws → routes returned 500.
+- Updated 9 routes to wrap the specific AI call in try/catch and return a graceful 503 (or SSE error for the stream route) with a clear user-facing message:
+  1. `/api/study-plan/route.ts` — wrapped `generateStudyPlan()` → 503 with Vercel/Groq hint.
+  2. `/api/study-sets/[id]/notes/route.ts` — wrapped `generateNotes()` → 503.
+  3. `/api/study-sets/[id]/summary/route.ts` — wrapped `generateSummary()` → 503.
+  4. `/api/study-sets/[id]/quiz/route.ts` — wrapped `generateQuiz()` → 503.
+  5. `/api/study-sets/[id]/flashcards/route.ts` — wrapped `generateFlashcards()` → 503.
+  6. `/api/study-sets/[id]/podcast/route.ts` — wrapped `generatePodcastScript()` → 503 (script generation can use Groq on Vercel). For `synthesizeSpeechChunks()`, kept the existing soft-fail (script still returned successfully) but enhanced the `audioError` message to clearly state that audio synthesis only works in the dev sandbox (Z.AI internal TTS API is unreachable from Vercel); short-circuited on Vercel before even calling TTS.
+  7. `/api/chat/stream/route.ts` — when `chatCompletionsStream()` throws mid-stream, the existing inner try/catch now sends an SSE `data: {"error":"AI service unavailable.","reason":...}` event then gracefully closes the stream (no 500, since the SSE response has already started). The persist-finally block remains intact.
+  8. `/api/chat/message/route.ts` — wrapped `chatMultiTurn()` → 503.
+  9. `/api/flashcards/route.ts` (POST) — SKIPPED. This route only has a GET handler (lists due flashcards, imports only `sm2Update`, no AI call). The actual AI flashcard generation POST lives at `/api/study-sets/[id]/flashcards/route.ts` (already covered in #5). Nothing to wrap here.
+  10. `/api/ingest/route.ts` — wrapped `invokeFunction('page_reader')` for the URL-ingestion path → 503 with a specific message that URL ingestion uses the Z.AI internal `page_reader` function (only reachable from the dev sandbox, not on Vercel/any public cloud), and suggests file upload (PDF/TXT/MD) as an alternative. The file-upload path (pdf-parse + buffer reads) is local-only and not affected, so it remains untouched.
+- Lint result: `bun run lint` → 0 errors, 0 warnings. Clean.
+- Commit hash: `06193bdfdc1d25302d46eadd8e7d66060c4a5355` — pushed to `origin/main`.
+
+Stage Summary:
+- All AI-dependent routes now fail gracefully on Vercel-without-Groq: structured 503 JSON with `{error, reason}` (or SSE error event for the stream) instead of opaque 500s. The Vercel reason explicitly points the user to set `GROQ_API_KEY` (with a link to console.groq.com/keys) and to `/settings → AI Engine Status`.
+- Happy paths are unchanged — every catch block sits inside the existing route try/catch and only wraps the AI call itself, so DB writes, activity logging, and serialisation on success behave exactly as before.
+- Special handling: (a) the podcast route keeps its script-success-but-audio-fail soft path with an enhanced "audio only in dev sandbox" message; (b) the chat stream route uses an SSE error event + graceful close (no 500) because the SSE response has already started; (c) the ingest route's URL path gets a sandbox-only message, while the file-upload path is unchanged.
+- One task-list mismatch: `/api/flashcards/route.ts` has no POST handler and no `generateFlashcards()` call — the AI flashcard POST is at `/api/study-sets/[id]/flashcards/route.ts` (handled). Noted, skipped #9.
+
