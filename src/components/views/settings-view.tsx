@@ -15,6 +15,10 @@ import {
   Check,
   Loader2,
   Database,
+  Bot,
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -111,6 +115,9 @@ export function SettingsView() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      {/* AI Status section */}
+      <AiStatusCard />
+
       {/* Profile section */}
       <Card>
         <CardHeader>
@@ -254,5 +261,131 @@ export function SettingsView() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/** Shows the current AI provider status + instructions to fix if not working. */
+function AiStatusCard() {
+  const [status, setStatus] = React.useState<{
+    environment: string;
+    provider: string;
+    groqConfigured: boolean;
+    working: boolean;
+    latencyMs: number | null;
+    sample: string;
+    lastError: string | null;
+    help: string | null;
+  } | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  const check = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/ai-status');
+      const data = await res.json();
+      setStatus(data);
+    } catch {
+      setStatus(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    check();
+  }, [check]);
+
+  const working = status?.working;
+  const providerLabel = status?.provider === 'groq'
+    ? 'Groq'
+    : status?.provider === 'zai'
+      ? 'Z.AI (sandbox)'
+      : 'None configured';
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Bot className="h-5 w-5 text-primary" /> AI Engine Status
+        </CardTitle>
+        <CardDescription>
+          Shows which AI provider is configured and whether it's working.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Checking AI status…
+          </div>
+        ) : working ? (
+          <div className="flex items-start gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-500 shrink-0" />
+            <div className="space-y-1 text-sm">
+              <p className="font-medium text-emerald-700 dark:text-emerald-300">
+                AI is working ({providerLabel})
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Environment: {status?.environment} · Latency: {status?.latencyMs}ms
+              </p>
+              {status?.sample && (
+                <p className="text-xs text-muted-foreground">
+                  Test response: <span className="font-mono">"{status.sample}"</span>
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-amber-500 shrink-0" />
+            <div className="space-y-2 text-sm">
+              <p className="font-medium text-amber-700 dark:text-amber-300">
+                AI is not configured ({providerLabel})
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Environment: {status?.environment}
+              </p>
+              {status?.lastError && (
+                <p className="text-xs text-muted-foreground font-mono break-all">
+                  {status.lastError}
+                </p>
+              )}
+              {status?.help && (
+                <div className="rounded-md bg-amber-500/10 p-2 text-xs">
+                  <p className="font-medium mb-1">How to fix:</p>
+                  <p className="text-muted-foreground">{status.help}</p>
+                  {status.environment === 'vercel' && (
+                    <ol className="list-decimal pl-4 mt-2 space-y-1 text-muted-foreground">
+                      <li>
+                        Go to{' '}
+                        <a
+                          href="https://console.groq.com/keys"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-0.5 text-primary hover:underline"
+                        >
+                          console.groq.com/keys <ExternalLink className="h-3 w-3" />
+                        </a>{' '}
+                        and create a free API key.
+                      </li>
+                      <li>
+                        In your Vercel project settings, add an environment variable:
+                        <code className="mx-1 rounded bg-muted px-1.5 py-0.5 text-[10px]">
+                          GROQ_API_KEY
+                        </code>
+                        = your key.
+                      </li>
+                      <li>Redeploy and AI features will work.</li>
+                    </ol>
+                  )}
+                </div>
+              )}
+              <Button onClick={check} variant="outline" size="sm" className="mt-2 h-7 text-xs">
+                Re-check
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
