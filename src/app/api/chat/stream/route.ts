@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
+import { chatCompletionsStream } from '@/lib/zai-client';
 import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -46,7 +46,6 @@ export async function POST(req: NextRequest) {
       ? `${SYSTEM_PROMPT}\n\nThe user is currently studying: ${subjectContext}. Tailor examples to this subject when helpful.`
       : SYSTEM_PROMPT;
 
-    const zai = await ZAI.create();
     const fullMessages = [
       { role: 'assistant' as const, content: systemWithCtx },
       ...history.map((m) => ({ role: m.role, content: m.content })),
@@ -58,11 +57,7 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         let fullReply = '';
         try {
-          const sdkStream: ReadableStream<Uint8Array> = await zai.chat.completions.create({
-            messages: fullMessages,
-            stream: true,
-            thinking: { type: 'disabled' },
-          });
+          const sdkStream: ReadableStream<Uint8Array> = await chatCompletionsStream(fullMessages);
           const reader = sdkStream.getReader();
           let buffer = '';
           while (true) {

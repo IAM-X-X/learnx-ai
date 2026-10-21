@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
+import { asr } from '@/lib/zai-client';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -16,9 +16,8 @@ export async function POST(req: NextRequest) {
     }
     // strip any data-URL prefix
     const clean = audio.replace(/^data:[^;]+;base64,/, '');
-    const zai = await ZAI.create();
-    const response = await zai.audio.asr.create({ file_base64: clean });
-    const text = (response as { text?: string }).text ?? '';
+    const response = await asr({ file_base64: clean });
+    const text = response.text ?? '';
     return NextResponse.json({ text: text.trim() });
   } catch (e) {
     console.error('transcribe error', e);

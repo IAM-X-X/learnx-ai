@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
+import { invokeFunction } from '@/lib/zai-client';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -39,9 +39,8 @@ export async function POST(req: NextRequest) {
       } catch {
         return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
       }
-      const zai = await ZAI.create();
-      const result = await zai.functions.invoke('page_reader', { url: normalized });
-      const data = (result as { data?: { title?: string; html?: string; url?: string; publishedTime?: string } }).data;
+      const result = await invokeFunction<{ data?: { title?: string; html?: string; url?: string; publishedTime?: string } }>('page_reader', { url: normalized });
+      const data = result?.data;
       if (!data || !data.html) {
         return NextResponse.json({ error: 'Could not extract content from that URL.' }, { status: 422 });
       }

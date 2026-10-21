@@ -46,9 +46,13 @@ const AD_CONFIG: Record<AdVariant, {
 
 export function AdBanner({ variant = 'leaderboard', className }: { variant?: AdVariant; className?: string }) {
   const adFree = usePremium((s) => s.adFree);
+  const initialized = usePremium((s) => s.initialized);
 
   // Don't render ads for premium/admin users
   if (adFree) return null;
+  // Wait for premium store to initialize from localStorage before rendering
+  // ads — otherwise premium users see a flash of ads on every page load.
+  if (!initialized) return null;
 
   const config = AD_CONFIG[variant];
 

@@ -1,47 +1,17 @@
 // AI helper library for LearnX AI
-// All functions use z-ai-web-dev-sdk (server-side only).
+// All functions use our thin HTTP client (src/lib/zai-client.ts) which calls
+// the Z.AI internal API directly with `fetch`. This avoids the
+// z-ai-web-dev-sdk's `.z-ai-config` file lookup that fails on Vercel
+// serverless functions.
 
-import ZAI from 'z-ai-web-dev-sdk';
+import {
+  chatComplete as zaiChatComplete,
+  chatMultiTurn as zaiChatMultiTurn,
+  tts as zaiTts,
+} from '@/lib/zai-client';
 
-let zaiInstance: Awaited<ReturnType<typeof ZAI.create>> | null = null;
-
-async function getZAI() {
-  if (!zaiInstance) {
-    zaiInstance = await ZAI.create();
-  }
-  return zaiInstance;
-}
-
-/** Call the LLM with a system + user message and return the text. */
-export async function chatComplete(system: string, user: string): Promise<string> {
-  const zai = await getZAI();
-  const completion = await zai.chat.completions.create({
-    messages: [
-      { role: 'assistant', content: system },
-      { role: 'user', content: user },
-    ],
-    thinking: { type: 'disabled' },
-  });
-  const content = completion.choices[0]?.message?.content ?? '';
-  return content.trim();
-}
-
-/** Multi-turn chat given prior messages (role/content). */
-export async function chatMultiTurn(
-  messages: { role: 'user' | 'assistant'; content: string }[],
-  system: string,
-): Promise<string> {
-  const zai = await getZAI();
-  const fullMessages = [
-    { role: 'assistant' as const, content: system },
-    ...messages.map((m) => ({ role: m.role, content: m.content })),
-  ];
-  const completion = await zai.chat.completions.create({
-    messages: fullMessages,
-    thinking: { type: 'disabled' },
-  });
-  return (completion.choices[0]?.message?.content ?? '').trim();
-}
+export const chatComplete = zaiChatComplete;
+export const chatMultiTurn = zaiChatMultiTurn;
 
 /** Generate structured Markdown study notes from source content / a topic. */
 export async function generateNotes(opts: {
@@ -222,8 +192,6 @@ export async function synthesizeSpeechChunks(
   voice: string = 'jam',
   speed: number = 1.0,
 ): Promise<{ buffer: Buffer; durationSec: number }> {
-  const zai = await getZAI();
-
   // Parse speaker-labeled lines and strip labels. Alternate voices for the two
   // hosts so it sounds like a real conversation. The user's selected voice is
   // used for Sam (expert); a complementary voice is used for Alex (learner).
@@ -253,7 +221,7 @@ export async function synthesizeSpeechChunks(
         if (attempt > 0) await new Promise(r => setTimeout(r, 1000 * attempt));
         else await new Promise(r => setTimeout(r, 300));
 
-        const response = await zai.audio.tts.create({
+        const response = await zaiTts({
           input,
           voice: v,
           speed,

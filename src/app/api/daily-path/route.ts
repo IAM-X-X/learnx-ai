@@ -89,14 +89,34 @@ export async function GET(_req: NextRequest) {
       avgScore = pcts.length ? Math.round(pcts.reduce((s: number, n: number) => s + n, 0) / pcts.length) : 0;
     }
 
-    const path = await generateDailyLearningPath({
-      dueCards,
-      totalStudySets: studySets.length,
-      studySets: setsForAI,
-      streakDays,
-      avgScore,
-      recentActivity: recentActivity.map((a: Record<string, unknown>) => String(a.detail)),
-    });
+    // Generate the AI path, but fall back to a sensible default if the
+    // upstream AI call fails (network, rate limit, 5xx, etc.) — this keeps
+    // the dashboard usable even when the AI service is degraded.
+    let path;
+    try {
+      path = await generateDailyLearningPath({
+        dueCards,
+        totalStudySets: studySets.length,
+        studySets: setsForAI,
+        streakDays,
+        avgScore,
+        recentActivity: recentActivity.map((a: Record<string, unknown>) => String(a.detail)),
+      });
+    } catch (aiErr) {
+      console.error('daily-path AI failed, using fallback:', aiErr);
+      path = {
+        greeting: streakDays > 0 ? `Great ${streakDays}-day streak! Keep it going.` : 'Ready to learn?',
+        summary: dueCards > 0
+          ? `You have ${dueCards} flashcards due for review.`
+          : 'No urgent reviews — a good time to learn something new.',
+        tasks: dueCards > 0
+          ? [{ title: `Review ${dueCards} due flashcards`, reason: 'Spaced repetition keeps your memory sharp', type: 'review', estimatedMinutes: 10 }]
+          : setsForAI.length > 0
+            ? [{ title: `Study: ${setsForAI[0].title}`, reason: 'Pick up where you left off', type: 'learn', estimatedMinutes: 15 }]
+            : [],
+        tip: 'Consistency beats intensity. A few minutes daily works better than long cramming sessions.',
+      };
+    }
 
     return NextResponse.json({ path });
   } catch (e) {

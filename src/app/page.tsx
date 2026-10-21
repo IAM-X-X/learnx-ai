@@ -42,7 +42,9 @@ export default function Home() {
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [helpOpen, setHelpOpen] = React.useState(false);
   const [shareToken, setShareToken] = React.useState<string | null>(null);
-  const [showOnboarding, setShowOnboarding] = React.useState(false);
+  // `null` = unknown (still checking localStorage); prevents the dashboard
+  // from flashing before the onboarding wizard can mount.
+  const [showOnboarding, setShowOnboarding] = React.useState<boolean | null>(null);
   const initPremium = usePremium((s) => s.init);
 
   // Initialize premium state from localStorage on mount
@@ -52,9 +54,7 @@ export default function Home() {
 
   // Check onboarding on mount (client-only to avoid hydration mismatch)
   React.useEffect(() => {
-    if (!isOnboardingComplete()) {
-      setShowOnboarding(true);
-    }
+    setShowOnboarding(!isOnboardingComplete());
   }, []);
 
   // Check for ?s=<token> in the URL on mount (shared study-set view)
@@ -105,6 +105,30 @@ export default function Home() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [setView]);
+
+  if (showOnboarding === null) {
+    // Minimal shell while we check localStorage — avoids a flash of the
+    // dashboard before the onboarding wizard can mount.
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground">
+            <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+            <p className="text-sm">Loading LearnX AI…</p>
+          </div>
+        </div>
+        <footer className="mt-auto border-t border-border bg-background/80 backdrop-blur">
+          <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-3 text-xs text-muted-foreground md:px-6">
+            <p className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span className="font-medium text-foreground">LearnX AI</span>
+              <span>· Free to start · No sign-up required</span>
+            </p>
+          </div>
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
