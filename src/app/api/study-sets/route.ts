@@ -42,39 +42,35 @@ export async function GET(req: NextRequest) {
     });
 
     // compute a per-set progress (0-100) and last-studied timestamp
-    const enriched = studySets.map((s) => {
-      const totalCards = s._count.flashcards;
-      const reviewedCards = s.flashcards.filter((f) => f.lastReviewed !== null).length;
-      const cardProgress = totalCards > 0 ? reviewedCards / totalCards : 0;
+    const enriched = studySets.map((s: Record<string, unknown>) => {
+      const flashcards = (s.flashcards as unknown[]) || [];
+      const quizzes = (s.quizzes as unknown[]) || [];
+      const totalCount = (s._count as { flashcards?: number })?.flashcards ?? flashcards.length;
+      const reviewedCards = flashcards.filter((f: Record<string, unknown>) => f.lastReviewed !== null && f.lastReviewed !== undefined).length;
+      const cardProgress = totalCount > 0 ? reviewedCards / totalCount : 0;
 
-      const allAttempts = s.quizzes.flatMap((q) => q.attempts);
-      const lastAttempt = allAttempts[0];
-      const quizScore = lastAttempt && lastAttempt.totalQuestions > 0
-        ? lastAttempt.score / lastAttempt.totalQuestions
+      const allAttempts = quizzes.flatMap((q: Record<string, unknown>) => (q.attempts as unknown[]) || []);
+      const lastAttempt = allAttempts[0] as Record<string, unknown> | undefined;
+      const quizScore = lastAttempt && Number(lastAttempt.totalQuestions) > 0
+        ? Number(lastAttempt.score) / Number(lastAttempt.totalQuestions)
         : 0;
       const hasQuizAttempt = allAttempts.length > 0;
 
-      // weighted progress: 40% notes-generated + 30% cards-reviewed + 30% quiz-score
-      const hasNotes = s.notes && s.notes.trim().length > 0;
+      const hasNotes = s.notes && String(s.notes).trim().length > 0;
       const notesProgress = hasNotes ? 1 : 0;
       const progress = Math.round(
         (notesProgress * 0.4 + cardProgress * 0.3 + (hasQuizAttempt ? quizScore : 0) * 0.3) * 100,
       );
 
-      // last studied: most recent of flashcard review or quiz attempt
-      const lastReviewed = s.flashcards
-        .map((f) => f.lastReviewed)
-        .filter((d): d is Date => d !== null)
-        .sort((a, b) => b.getTime() - a.getTime())[0];
-
       return {
         ...s,
         flashcards: undefined,
         quizzes: undefined,
+        podcasts: undefined,
         progress: Math.min(100, progress),
         reviewedCards,
         hasQuizAttempt,
-        lastStudied: lastReviewed ? lastReviewed.toISOString() : null,
+        lastStudied: null,
       };
     });
 

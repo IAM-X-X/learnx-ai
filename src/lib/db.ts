@@ -1,31 +1,22 @@
-// Raw SQL database client — uses @libsql/client directly (no Prisma adapter needed)
-// Mimics Prisma's API so API routes don't need to change
+// Raw SQL database client — uses @libsql/client directly
 import { createClient } from '@libsql/client'
-import { randomUUID } from 'crypto'
 
+// Turso database connection
 const TURSO_URL = 'libsql://learnx-ai-iam-x-x.aws-eu-west-1.turso.io'
 const TURSO_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTIwODk0NjYsImlkIjoiMDFhMTQwZDctOTUwMS03MWYzLWE5YmItZWZkMmJmOGFlMDYyIiwia2lkIjoiY251dUlnd2ZrVERKSDRQWkVKVjdza25ZeDNfWGtZR0NqampUMGF0OEQtQSIsInJpZCI6IjI1NzMxYmFjLTY1MTktNDNjZi1hYTRiLTJlZGNmMWI4Y2JkMSJ9.vIeszM4TxCPraarsbjL15MRq3BrcytaXb5ZV0hECfEgTLiohf5K1pEJsQhBUGXkcC8NCSrPGTnVAcl7aVWICDA'
 
-function getClient() {
-  const dbUrl = process.env.DATABASE_URL || ''
-  if (dbUrl.startsWith('file:')) {
-    return createClient({ url: dbUrl })
-  }
-  return createClient({ url: TURSO_URL, authToken: TURSO_TOKEN })
-}
-
-const client = getClient()
+// Always use Turso (works for both local dev and Vercel production)
+const client = createClient({ url: TURSO_URL, authToken: TURSO_TOKEN })
 
 // Generate a CUID-like ID
 function generateId(): string {
   return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
 }
 
-// Convert a row (object with column names) to a typed object
+// Convert a row to a typed object
 function rowToObject(row: Record<string, unknown>): Record<string, unknown> {
   const obj: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(row)) {
-    // Parse JSON fields
     if (typeof value === 'string' && (value.startsWith('[') || value.startsWith('{'))) {
       try { obj[key] = JSON.parse(value) } catch { obj[key] = value }
     } else {
@@ -37,7 +28,11 @@ function rowToObject(row: Record<string, unknown>): Record<string, unknown> {
 
 // Table wrapper that mimics Prisma model API
 class TableDelegate {
-  constructor(private tableName: string) {}
+  private tableName: string
+
+  constructor(tableName: string) {
+    this.tableName = tableName
+  }
 
   async findMany(opts?: {
     where?: Record<string, unknown>
@@ -56,7 +51,6 @@ class TableDelegate {
         if (value === null) {
           conditions.push(`"${key}" IS NULL`)
         } else if (typeof value === 'object' && value !== null) {
-          // Handle operators like { contains: "..." }
           const op = value as Record<string, unknown>
           if ('contains' in op) {
             conditions.push(`"${key}" LIKE ?`)
@@ -81,7 +75,6 @@ class TableDelegate {
       }
     }
 
-    // Handle OR conditions
     if (opts?.where && 'OR' in opts.where && Array.isArray(opts.where.OR)) {
       const orConditions = opts.where.OR.map((cond: Record<string, unknown>) => {
         const parts = Object.entries(cond).map(([key, val]) => {
@@ -108,7 +101,9 @@ class TableDelegate {
     if (opts?.take) sql += ` LIMIT ${opts.take}`
     if (opts?.skip) sql += ` OFFSET ${opts.skip}`
 
-    const result = await client.execute({ sql, args })
+    const result = args.length > 0
+      ? await client.execute({ sql, args })
+      : await client.execute(sql)
     return result.rows.map(row => rowToObject(row as Record<string, unknown>))
   }
 
@@ -286,7 +281,6 @@ export const db = {
   studyActivity: new TableDelegate('StudyActivity'),
   noteVersion: new TableDelegate('NoteVersion'),
   
-  // Raw SQL escape hatch for complex queries
   $queryRaw: async (sql: string, args: unknown[] = []) => {
     const result = await client.execute({ sql, args })
     return result.rows
@@ -298,5 +292,4 @@ export const db = {
   },
 }
 
-// Export the raw client for direct use
 export { client as rawClient }
