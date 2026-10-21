@@ -29,9 +29,22 @@ function rowToObject(row: Record<string, unknown>): Record<string, unknown> {
 // Table wrapper that mimics Prisma model API
 class TableDelegate {
   private tableName: string
+  // Tables that have an `updatedAt` column (per the Prisma schema). Other
+  // tables (e.g. StudyActivity, QuizAttempt) only have `createdAt` — trying
+  // to set `updatedAt` on them raises "no such column: updatedAt".
+  private static readonly TABLES_WITH_UPDATED_AT = new Set([
+    'Subject',
+    'StudySet',
+    'Flashcard',
+    'ChatSession',
+  ])
 
   constructor(tableName: string) {
     this.tableName = tableName
+  }
+
+  private hasUpdatedAt(): boolean {
+    return TableDelegate.TABLES_WITH_UPDATED_AT.has(this.tableName)
   }
 
   async findMany(opts?: {
@@ -140,7 +153,7 @@ class TableDelegate {
     const data = { ...opts.data }
     if (!data.id) data.id = generateId()
     if (!data.createdAt) data.createdAt = new Date().toISOString()
-    if (!data.updatedAt) data.updatedAt = new Date().toISOString()
+    if (this.hasUpdatedAt() && !data.updatedAt) data.updatedAt = new Date().toISOString()
 
     const keys = Object.keys(data)
     const values = keys.map(k => {
@@ -163,7 +176,8 @@ class TableDelegate {
     include?: Record<string, boolean>
     select?: Record<string, boolean>
   }): Promise<Record<string, unknown>> {
-    const data = { ...opts.data, updatedAt: new Date().toISOString() }
+    const data = { ...opts.data }
+    if (this.hasUpdatedAt() && !data.updatedAt) data.updatedAt = new Date().toISOString()
     const setParts: string[] = []
     const args: unknown[] = []
     for (const [key, value] of Object.entries(data)) {
@@ -248,7 +262,7 @@ class TableDelegate {
       const data = { ...item }
       if (!data.id) data.id = generateId()
       if (!data.createdAt) data.createdAt = new Date().toISOString()
-      if (!data.updatedAt) data.updatedAt = new Date().toISOString()
+      if (this.hasUpdatedAt() && !data.updatedAt) data.updatedAt = new Date().toISOString()
       const keys = Object.keys(data)
       const values = keys.map(k => {
         const v = data[k]
