@@ -77,14 +77,14 @@ export async function GET(req: NextRequest) {
           front: f.front,
           back: f.back,
           studySetId: f.studySetId,
-          studySetTitle: f.studySet?.title || '',
+          studySetTitle: '',
         })),
-        sessions: sessions.map((s) => ({
+        sessions: sessions.map((s: Record<string, unknown>) => ({
           id: s.id,
           title: s.title,
           subject: s.subject,
-          updatedAt: s.updatedAt.toISOString(),
-          messageCount: s._count.messages,
+          updatedAt: s.updatedAt,
+          messageCount: 0,
         })),
         total: studySets.length + flashcards.length + sessions.length,
       },

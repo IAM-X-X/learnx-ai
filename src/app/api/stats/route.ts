@@ -21,13 +21,13 @@ export async function GET(_req: NextRequest) {
       ]);
 
     // average score across all attempts
-    const attempts = await db.quizAttempt.findMany({ select: { score: true, totalQuestions: true } });
+    const attempts = await db.quizAttempt.findMany();
     let averageScore = 0;
     if (attempts.length) {
       const pcts = attempts
-        .filter((a) => a.totalQuestions > 0)
-        .map((a) => (a.score / a.totalQuestions) * 100);
-      averageScore = pcts.length ? Math.round(pcts.reduce((s, n) => s + n, 0) / pcts.length) : 0;
+        .filter((a: Record<string, unknown>) => Number(a.totalQuestions) > 0)
+        .map((a: Record<string, unknown>) => (Number(a.score) / Number(a.totalQuestions)) * 100);
+      averageScore = pcts.length ? Math.round(pcts.reduce((s: number, n: number) => s + n, 0) / pcts.length) : 0;
     }
 
     // study streak: count distinct days in last 14 with activity
@@ -39,7 +39,7 @@ export async function GET(_req: NextRequest) {
     });
     const daySet = new Set<string>();
     for (const a of recent) {
-      const d = new Date(a.createdAt);
+      const d = new Date(String(a.createdAt));
       daySet.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
     }
     // compute current streak from today backwards
@@ -92,7 +92,7 @@ export async function GET(_req: NextRequest) {
     });
     const heatmapMap: Record<string, number> = {};
     for (const a of heatmapActivities) {
-      const d = new Date(a.createdAt);
+      const d = new Date(String(a.createdAt));
       d.setHours(0, 0, 0, 0);
       const key = d.toISOString().slice(0, 10);
       heatmapMap[key] = (heatmapMap[key] || 0) + 1;
@@ -121,16 +121,14 @@ export async function GET(_req: NextRequest) {
         averageScore,
         studyStreakDays,
         longestStreak,
-        recentActivity: activities.map((a) => ({
+        recentActivity: activities.map((a: Record<string, unknown>) => ({
           id: a.id,
           studySetId: a.studySetId,
           type: a.type,
           detail: a.detail,
           score: a.score,
-          createdAt: a.createdAt.toISOString(),
-          studySet: a.studySet
-            ? { id: a.studySet.id, title: a.studySet.title }
-            : null,
+          createdAt: a.createdAt,
+          studySet: null,
         })),
         weeklyActivity: weekly,
         heatmap: heatmapFilled,
