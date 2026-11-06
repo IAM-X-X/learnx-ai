@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-export const runtime = 'edge';
 import { chatCompletionsStream, isPublicCloud } from '@/lib/zai-client';
 import { db } from '@/lib/db';
 

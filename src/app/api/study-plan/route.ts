@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-export const runtime = 'edge';
 import { db, rawClient } from '@/lib/db';
 import { generateStudyPlan } from '@/lib/ai';
 import { isPublicCloud } from '@/lib/zai-client';

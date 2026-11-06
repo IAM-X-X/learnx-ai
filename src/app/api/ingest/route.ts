@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-export const runtime = 'edge';
 import { invokeFunction, isPublicCloud } from '@/lib/zai-client';
 
 export const dynamic = 'force-dynamic';
