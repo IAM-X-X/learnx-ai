@@ -5,26 +5,15 @@ import { invokeFunction, isPublicCloud } from '@/lib/zai-client';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-// pdf-parse v1 runs debug code on import (looking for a test PDF). We work
-// around this by importing it lazily inside the handler and disabling the
-// debug mode via an env flag.
-let _pdfParse: ((buf: Buffer) => Promise<{ text: string }>) | null = null;
-async function getPdfParse() {
-  if (_pdfParse) return _pdfParse;
-  // The debug code in pdf-parse v1 checks `!module.parent`. Setting
-  // `isDebugMode` off requires a workaround — we use createRequire to load it.
-  const mod = await import('node:module');
-  const require = (mod.default || (mod as unknown as { createRequire: (o: string) => NodeRequire })).createRequire(import.meta.url);
-  // point to the package's lib directly to avoid the index.js debug block
-  const lib = require('pdf-parse/lib/pdf-parse.js');
-  _pdfParse = lib.default || lib;
-  return _pdfParse;
-}
-
-// POST /api/ingest — extract text from a URL OR an uploaded file (PDF/TXT/MD).
+// POST /api/ingest — extract text from a URL OR an uploaded file (TXT/MD).
 // body can be:
 //   { url: string }                              — extract web page content
-//   { fileBase64: string, fileName?: string }    — extract file content (PDF/TXT/MD)
+//   { fileBase64: string, fileName?: string }    — extract file content (TXT/MD/JSON/CSV)
+//
+// NOTE: PDF parsing is NOT available on Cloudflare Pages (Edge Runtime) because
+// pdf-parse uses Node.js APIs (node:module, createRequire) that aren't available
+// in the Edge Runtime. PDF uploads return a clear error. TXT/MD/CSV/JSON files
+// work fine. The Z.AI page_reader (URL ingestion) also only works in the sandbox.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -40,7 +29,8 @@ export async function POST(req: NextRequest) {
       } catch {
         return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
       }
-      let result: { data?: { title?: string; html?: string; url?: string; publishedTime?: string } };
+
+      let result;
       try {
         result = await invokeFunction<{ data?: { title?: string; html?: string; url?: string; publishedTime?: string } }>('page_reader', { url: normalized });
       } catch (aiErr) {
@@ -50,7 +40,7 @@ export async function POST(req: NextRequest) {
             error: 'AI service unavailable.',
             reason:
               isPublicCloud()
-              ? 'URL ingestion uses the Z.AI internal page_reader function, which is only reachable from the dev sandbox. It is not available on any public cloud (Vercel, Cloudflare Pages, Netlify, etc.). Try a file upload (PDF/TXT/MD) instead, or run locally.'
+                ? 'URL ingestion uses the Z.AI internal page_reader function, which is only reachable from the dev sandbox. It is not available on any public cloud (Vercel, Cloudflare Pages, Netlify, etc.). Try a file upload (TXT/MD) instead, or run locally.'
                 : (aiErr as Error).message,
           },
           { status: 503 },
@@ -82,7 +72,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ----- File ingestion (PDF / TXT / MD) -----
+    // ----- File ingestion (TXT / MD / CSV / JSON — NO PDF on Edge Runtime) -----
     if (body.fileBase64 && typeof body.fileBase64 === 'string') {
       const fileName = (body.fileName as string) || 'upload';
       const clean = body.fileBase64.replace(/^data:[^;]+;base64,/, '');
@@ -90,20 +80,21 @@ export async function POST(req: NextRequest) {
       const lower = fileName.toLowerCase();
 
       let text = '';
-      // PDF
+
       if (lower.endsWith('.pdf')) {
-        try {
-          const pdfParse = await getPdfParse();
-          const pdfData = await pdfParse(buffer);
-          text = (pdfData.text || '').replace(/\s+/g, ' ').trim();
-        } catch (e) {
-          console.error('pdf parse failed', e);
-          return NextResponse.json({ error: 'Could not parse that PDF. It may be scanned or corrupted.' }, { status: 422 });
-        }
-      } else {
-        // plain text / markdown / csv / json
-        text = buffer.toString('utf-8').replace(/\s+/g, ' ').trim();
+        // PDF parsing requires Node.js APIs (pdf-parse uses node:module,
+        // createRequire) that aren't available in the Edge Runtime.
+        return NextResponse.json(
+          {
+            error: 'PDF parsing is not available on Cloudflare Pages (Edge Runtime). Please paste the text directly, or upload a TXT/MD/CSV/JSON file instead.',
+            hint: 'You can copy text from your PDF using any PDF reader (Ctrl+A, Ctrl+C), then paste it into the "Paste text" option.',
+          },
+          { status: 422 },
+        );
       }
+
+      // plain text / markdown / csv / json — all work fine on Edge Runtime
+      text = buffer.toString('utf-8').replace(/\s+/g, ' ').trim();
 
       if (!text) {
         return NextResponse.json({ error: 'No text could be extracted from that file.' }, { status: 422 });
