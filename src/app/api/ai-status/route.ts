@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const runtime = 'edge';
 import { chatComplete } from '@/lib/zai-client';
 
 export const dynamic = 'force-dynamic';

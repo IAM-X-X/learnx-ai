@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const runtime = 'edge';
 import { asr } from '@/lib/zai-client';
 
 export const dynamic = 'force-dynamic';

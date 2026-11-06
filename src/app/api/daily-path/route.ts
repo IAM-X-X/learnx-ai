@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const runtime = 'edge';
 import { db, rawClient } from '@/lib/db';
 import { generateDailyLearningPath } from '@/lib/ai';
 

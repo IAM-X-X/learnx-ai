@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const runtime = 'edge';
 import { db } from '@/lib/db';
 import { generateQuiz } from '@/lib/ai';
 import { serializeQuiz } from '@/lib/serializers';
