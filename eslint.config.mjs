@@ -1,12 +1,19 @@
-import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
-import nextTypescript from "eslint-config-next/typescript";
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals.js";
+import nextTypescript from "eslint-config-next/typescript.js";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
+// eslint-config-next 15.x exports a single flat-config object, not an array.
+// Normalize both shapes into a single array of config objects.
+const nextRules = [
+  ...(Array.isArray(nextCoreWebVitals) ? nextCoreWebVitals : [nextCoreWebVitals]),
+  ...(Array.isArray(nextTypescript) ? nextTypescript : [nextTypescript]),
+];
+
+const eslintConfig = [...nextRules, {
   rules: {
     // TypeScript rules
     "@typescript-eslint/no-explicit-any": "off",

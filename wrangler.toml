@@ -3,5 +3,9 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
 
-# Environment variables are configured in the Cloudflare dashboard.
-# Add GROQ_API_KEY there (Production + Preview environments).
+# Build command for Cloudflare Pages:
+#   npx @cloudflare/next-on-pages@latest
+#
+# Environment variables (set in Cloudflare dashboard):
+#   GROQ_API_KEY   = your gsk_... key (required for AI features)
+#   NODE_VERSION   = 20
