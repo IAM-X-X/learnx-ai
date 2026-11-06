@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { chatCompletionsStream } from '@/lib/zai-client';
+import { chatCompletionsStream, isPublicCloud } from '@/lib/zai-client';
 import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -106,8 +106,8 @@ export async function POST(req: NextRequest) {
               `data: ${JSON.stringify({
                 error: 'AI service unavailable.',
                 reason:
-                  process.env.VERCEL === '1' && !process.env.GROQ_API_KEY
-                    ? 'On Vercel, set GROQ_API_KEY env var (free at https://console.groq.com/keys). See /settings → AI Engine Status.'
+                  isPublicCloud() && !process.env.GROQ_API_KEY
+                    ? 'Set GROQ_API_KEY env var (free at https://console.groq.com/keys). See /settings → AI Engine Status.'
                     : (e as Error).message,
               })}\n\n`,
             ),

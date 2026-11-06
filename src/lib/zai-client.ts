@@ -83,12 +83,28 @@ function buildGroqHeaders(): Record<string, string> {
 }
 
 /**
- * Returns true if we're likely running on Vercel (where Z.AI internal API
- * is unreachable). Vercel always sets `VERCEL=1` automatically.
+ * Returns true if we're running on a public cloud platform where the Z.AI
+ * internal API is unreachable (it only resolves to RFC-1918 private IPs).
+ * Detected platforms: Vercel (VERCEL=1), Cloudflare Pages (CF_PAGES=1),
+ * Netlify (NETLIFY=true), Render (RENDER), and any platform that sets
+ * NODE_ENV=production without being in the Z.ai sandbox network.
+ *
+ * Exported so API routes can use it for graceful fallback messaging.
  */
-function isVercel(): boolean {
-  return process.env.VERCEL === '1' || !!process.env.VERCEL_ENV;
+export function isPublicCloud(): boolean {
+  return (
+    process.env.VERCEL === '1' ||
+    !!process.env.VERCEL_ENV ||
+    process.env.CF_PAGES === '1' ||      // Cloudflare Pages
+    !!process.env.CF_PAGES_COMMIT_HASH || // Cloudflare Pages (alt signal)
+    process.env.NETLIFY === 'true' ||     // Netlify
+    !!process.env.NETLIFY_DEV ||
+    !!process.env.RENDER                 // Render.com
+  );
 }
+
+// Back-compat alias for the few call sites that used the old name.
+const isVercel = isPublicCloud;
 
 /**
  * Create a chat completion (non-streaming) using the best available provider.
@@ -109,7 +125,7 @@ export async function chatCompletions(
       lastError = e as Error;
     }
   } else {
-    lastError = new Error('Z.AI skipped (running on Vercel — internal API unreachable)');
+    lastError = new Error('Z.AI skipped (running on a public cloud — internal API unreachable)');
   }
 
   // Fall back to Groq if configured
@@ -122,7 +138,7 @@ export async function chatCompletions(
     }
   }
 
-  throw lastError || new Error('No AI provider available (set GROQ_API_KEY on Vercel)');
+  throw lastError || new Error('No AI provider available (set GROQ_API_KEY env var)');
 }
 
 /** Direct Z.AI chat completions call. */
@@ -211,6 +227,9 @@ async function zaiChatStream(
   messages: ChatMessage[],
   opts: { thinking?: { type: 'enabled' | 'disabled' }; model?: string },
 ): Promise<ReadableStream<Uint8Array>> {
+  if (isPublicCloud()) {
+    throw new Error('Z.AI stream skipped (public cloud)');
+  }
   const url = `${ZAI_CONFIG.baseUrl}/chat/completions`;
   const body = {
     messages,
@@ -292,7 +311,7 @@ export async function tts(body: {
   stream?: boolean;
   model?: string;
 }): Promise<Response> {
-  if (isVercel()) {
+  if (isPublicCloud()) {
     throw new Error('TTS only available in the dev sandbox (Z.AI internal API required)');
   }
   const url = `${ZAI_CONFIG.baseUrl}/audio/tts`;
@@ -319,12 +338,12 @@ export async function asr(body: {
   model?: string;
   stream?: boolean;
 }): Promise<{ text?: string; [key: string]: unknown }> {
-  if (isVercel()) {
-    // Use Groq's Whisper API on Vercel if a key is configured
+  if (isPublicCloud()) {
+    // Use Groq's Whisper API on public clouds if a key is configured
     if (GROQ_API_KEY && body.file_base64) {
       return groqAsr(body.file_base64);
     }
-    throw new Error('ASR requires GROQ_API_KEY on Vercel or Z.AI sandbox');
+    throw new Error('ASR requires GROQ_API_KEY on public clouds or Z.AI sandbox');
   }
   const url = `${ZAI_CONFIG.baseUrl}/audio/asr`;
   const response = await fetch(url, {
@@ -368,7 +387,7 @@ export async function invokeFunction<T = unknown>(
   function_name: string,
   args: Record<string, unknown>,
 ): Promise<T> {
-  if (isVercel()) {
+  if (isPublicCloud()) {
     throw new Error(`Function '${function_name}' only available in dev sandbox (Z.AI internal API)`);
   }
   const url = `${ZAI_CONFIG.baseUrl}/functions/invoke`;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { generateQuiz } from '@/lib/ai';
 import { serializeQuiz } from '@/lib/serializers';
+import { isPublicCloud } from '@/lib/zai-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +28,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         {
           error: 'AI service unavailable.',
           reason:
-            process.env.VERCEL === '1' && !process.env.GROQ_API_KEY
-              ? 'On Vercel, set GROQ_API_KEY env var (free at https://console.groq.com/keys). See /settings → AI Engine Status.'
+            isPublicCloud() && !process.env.GROQ_API_KEY
+              ? 'Set GROQ_API_KEY env var (free at https://console.groq.com/keys). See /settings → AI Engine Status.'
               : (aiErr as Error).message,
         },
         { status: 503 },

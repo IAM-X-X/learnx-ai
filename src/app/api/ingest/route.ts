@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { invokeFunction } from '@/lib/zai-client';
+import { invokeFunction, isPublicCloud } from '@/lib/zai-client';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
           {
             error: 'AI service unavailable.',
             reason:
-              process.env.VERCEL === '1'
-                ? 'URL ingestion uses the Z.AI internal page_reader function, which is only reachable from the dev sandbox. It is not available on Vercel (or any public cloud). Try a file upload (PDF/TXT/MD) instead, or run locally.'
+              isPublicCloud()
+              ? 'URL ingestion uses the Z.AI internal page_reader function, which is only reachable from the dev sandbox. It is not available on any public cloud (Vercel, Cloudflare Pages, Netlify, etc.). Try a file upload (PDF/TXT/MD) instead, or run locally.'
                 : (aiErr as Error).message,
           },
           { status: 503 },

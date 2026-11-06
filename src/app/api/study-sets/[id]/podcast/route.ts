@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { generatePodcastScript, synthesizeSpeechChunks } from '@/lib/ai';
+import { isPublicCloud } from '@/lib/zai-client';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -27,8 +28,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         {
           error: 'AI service unavailable.',
           reason:
-            process.env.VERCEL === '1' && !process.env.GROQ_API_KEY
-              ? 'On Vercel, set GROQ_API_KEY env var (free at https://console.groq.com/keys). See /settings → AI Engine Status.'
+            isPublicCloud() && !process.env.GROQ_API_KEY
+              ? 'Set GROQ_API_KEY env var (free at https://console.groq.com/keys). See /settings → AI Engine Status.'
               : (aiErr as Error).message,
         },
         { status: 503 },
@@ -40,11 +41,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     let audioError = '';
     if (generateAudio) {
       // Audio synthesis only works in the dev sandbox (Z.AI internal TTS API).
-      // On Vercel or any public cloud it's unreachable — fail gracefully.
-      const onVercel = process.env.VERCEL === '1';
-      if (onVercel) {
+      // On any public cloud (Vercel, Cloudflare Pages, Netlify, etc.) it's
+      // unreachable — fail gracefully.
+      if (isPublicCloud()) {
         audioError =
-          'Audio synthesis is only available in the dev sandbox (Z.AI internal TTS API is unreachable from Vercel). The script was generated successfully — you can read it below or generate audio locally.';
+          'Audio synthesis is only available in the dev sandbox (Z.AI internal TTS API is unreachable from public clouds). The script was generated successfully — you can read it below or generate audio locally.';
       } else {
         try {
           const { buffer, durationSec: d } = await synthesizeSpeechChunks(script, voice, 1.0);

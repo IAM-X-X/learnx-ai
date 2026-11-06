@@ -5,15 +5,17 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 // GET /api/ai-status — quick diagnostic that tells you which AI provider is
-// configured and whether it's actually working. Useful for debugging on
-// Vercel: if `provider: 'none'` and `working: false`, you need to set
-// `GROQ_API_KEY` env var on Vercel.
+// configured and whether it's actually working. Useful for debugging on any
+// public cloud (Vercel, Cloudflare Pages, Netlify, etc.): if `provider: 'none'`
+// and `working: false`, you need to set the `GROQ_API_KEY` env var.
 export async function GET() {
-  const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL_ENV;
+  // Detect any public cloud platform (not just Vercel)
+  const platform = detectPlatform();
+  const isPublicCloud = platform !== 'sandbox';
   const hasGroq = !!process.env.GROQ_API_KEY;
 
   let provider: 'zai' | 'groq' | 'none';
-  if (isVercel) {
+  if (isPublicCloud) {
     provider = hasGroq ? 'groq' : 'none';
   } else {
     provider = 'zai';
@@ -37,7 +39,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    environment: isVercel ? 'vercel' : 'sandbox',
+    environment: platform,
     provider,
     groqConfigured: hasGroq,
     working,
@@ -45,9 +47,18 @@ export async function GET() {
     sample: sample.slice(0, 100),
     lastError,
     help: !working
-      ? isVercel
-        ? 'On Vercel, set GROQ_API_KEY env var (free at https://console.groq.com).'
+      ? isPublicCloud
+        ? `On ${platform}, set GROQ_API_KEY env var (free at https://console.groq.com/keys). See /settings → AI Engine Status.`
         : 'In the sandbox, Z.AI should work. Check the dev.log for the error.'
       : null,
   });
+}
+
+/** Returns the hosting platform name. */
+function detectPlatform(): string {
+  if (process.env.CF_PAGES === '1' || !!process.env.CF_PAGES_COMMIT_HASH) return 'cloudflare';
+  if (process.env.VERCEL === '1' || !!process.env.VERCEL_ENV) return 'vercel';
+  if (process.env.NETLIFY === 'true') return 'netlify';
+  if (process.env.RENDER) return 'render';
+  return 'sandbox';
 }

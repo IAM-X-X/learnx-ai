@@ -353,7 +353,7 @@ function AiStatusCard() {
                 <div className="rounded-md bg-amber-500/10 p-2 text-xs">
                   <p className="font-medium mb-1">How to fix:</p>
                   <p className="text-muted-foreground">{status.help}</p>
-                  {status.environment === 'vercel' && (
+                  {status.environment !== 'sandbox' && (
                     <ol className="list-decimal pl-4 mt-2 space-y-1 text-muted-foreground">
                       <li>
                         Go to{' '}
@@ -368,7 +368,7 @@ function AiStatusCard() {
                         and create a free API key.
                       </li>
                       <li>
-                        In your Vercel project settings, add an environment variable:
+                        In your {status.environment === 'cloudflare' ? 'Cloudflare Pages' : status.environment === 'vercel' ? 'Vercel' : 'hosting'} project settings, add an environment variable:
                         <code className="mx-1 rounded bg-muted px-1.5 py-0.5 text-[10px]">
                           GROQ_API_KEY
                         </code>
