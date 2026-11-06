@@ -58,8 +58,12 @@ const ZAI_CONFIG: ZaiConfig = {
 };
 
 // Groq provider config (OpenAI-compatible). Get a free key at
-// https://console.groq.com — set as `GROQ_API_KEY` env var on Vercel.
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+// https://console.groq.com — set as `GROQ_API_KEY` env var.
+// Read at call time (not module load) so Cloudflare Workers runtime env
+// vars are picked up correctly.
+function getGroqApiKey(): string {
+  return process.env.GROQ_API_KEY || '';
+}
 const GROQ_BASE_URL = process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1';
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
@@ -78,7 +82,7 @@ function buildZaiHeaders(cfg: ZaiConfig): Record<string, string> {
 function buildGroqHeaders(): Record<string, string> {
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${GROQ_API_KEY}`,
+    'Authorization': `Bearer ${getGroqApiKey()}`,
   };
 }
 
@@ -86,30 +90,38 @@ function buildGroqHeaders(): Record<string, string> {
  * Returns true if we're running on a public cloud platform where the Z.AI
  * internal API is unreachable (it only resolves to RFC-1918 private IPs).
  * Detected platforms: Vercel (VERCEL=1), Cloudflare Pages (CF_PAGES=1),
- * Netlify (NETLIFY=true), Render (RENDER), and any platform that sets
- * NODE_ENV=production without being in the Z.ai sandbox network.
+ * Cloudflare Workers (detected via caches global), Netlify, Render.
  *
  * Exported so API routes can use it for graceful fallback messaging.
  */
 export function isPublicCloud(): boolean {
-  return (
+  // Check standard platform env vars
+  if (
     process.env.VERCEL === '1' ||
     !!process.env.VERCEL_ENV ||
-    process.env.CF_PAGES === '1' ||      // Cloudflare Pages
-    !!process.env.CF_PAGES_COMMIT_HASH || // Cloudflare Pages (alt signal)
-    process.env.NETLIFY === 'true' ||     // Netlify
+    process.env.CF_PAGES === '1' ||
+    !!process.env.CF_PAGES_COMMIT_HASH ||
+    process.env.NETLIFY === 'true' ||
     !!process.env.NETLIFY_DEV ||
-    !!process.env.RENDER                 // Render.com
-  );
+    !!process.env.RENDER
+  ) {
+    return true;
+  }
+  // Cloudflare Workers: the `caches` global only exists in the Workers runtime
+  if (typeof caches !== 'undefined' && typeof Request !== 'undefined') {
+    return true;
+  }
+  return false;
 }
 
 // Back-compat alias for the few call sites that used the old name.
 const isVercel = isPublicCloud;
 
 /**
- * Create a chat completion (non-streaming) using the best available provider.
- * Tries Z.AI first (in sandbox); on Vercel skips Z.AI and uses Groq if
- * `GROQ_API_KEY` is set. Throws if all providers fail.
+ * Create a chat completion (non-streaming). Provider priority:
+ * 1. Groq (if GROQ_API_KEY is set) — works on ALL platforms including Cloudflare
+ * 2. Z.AI (if not on a public cloud) — works only in the dev sandbox
+ * 3. Throw with a clear "set GROQ_API_KEY" message
  */
 export async function chatCompletions(
   messages: ChatMessage[],
@@ -117,19 +129,8 @@ export async function chatCompletions(
 ): Promise<ChatCompletionResponse> {
   let lastError: Error | null = null;
 
-  if (!isVercel()) {
-    try {
-      return await zaiChat(messages, opts);
-    } catch (e) {
-      console.error('[zai-client] Z.AI chat failed:', (e as Error).message);
-      lastError = e as Error;
-    }
-  } else {
-    lastError = new Error('Z.AI skipped (running on a public cloud — internal API unreachable)');
-  }
-
-  // Fall back to Groq if configured
-  if (GROQ_API_KEY) {
+  // Always try Groq first if the key is configured — it works everywhere
+  if (getGroqApiKey()) {
     try {
       return await groqChat(messages, opts);
     } catch (e) {
@@ -138,7 +139,19 @@ export async function chatCompletions(
     }
   }
 
-  throw lastError || new Error('No AI provider available (set GROQ_API_KEY env var)');
+  // Fall back to Z.AI only if not on a public cloud (sandbox only)
+  if (!isPublicCloud()) {
+    try {
+      return await zaiChat(messages, opts);
+    } catch (e) {
+      console.error('[zai-client] Z.AI chat failed:', (e as Error).message);
+      lastError = e as Error;
+    }
+  } else if (!getGroqApiKey()) {
+    lastError = new Error('No AI provider configured. Set GROQ_API_KEY env var (free at https://console.groq.com/keys).');
+  }
+
+  throw lastError || new Error('No AI provider available');
 }
 
 /** Direct Z.AI chat completions call. */
@@ -193,6 +206,7 @@ async function groqChat(
 /**
  * Create a streaming chat completion. Returns a ReadableStream<Uint8Array>
  * of raw SSE bytes (matching the SDK's return type when `stream: true`).
+ * Same provider priority as chatCompletions: Groq first, then Z.AI.
  */
 export async function chatCompletionsStream(
   messages: ChatMessage[],
@@ -200,22 +214,22 @@ export async function chatCompletionsStream(
 ): Promise<ReadableStream<Uint8Array>> {
   let lastError: Error | null = null;
 
-  if (!isVercel()) {
-    try {
-      return await zaiChatStream(messages, opts);
-    } catch (e) {
-      console.error('[zai-client] Z.AI stream failed:', (e as Error).message);
-      lastError = e as Error;
-    }
-  } else {
-    lastError = new Error('Z.AI skipped (Vercel)');
-  }
-
-  if (GROQ_API_KEY) {
+  // Always try Groq first if configured
+  if (getGroqApiKey()) {
     try {
       return await groqChatStream(messages, opts);
     } catch (e) {
       console.error('[zai-client] Groq stream failed:', (e as Error).message);
+      lastError = e as Error;
+    }
+  }
+
+  // Fall back to Z.AI only in the sandbox
+  if (!isPublicCloud()) {
+    try {
+      return await zaiChatStream(messages, opts);
+    } catch (e) {
+      console.error('[zai-client] Z.AI stream failed:', (e as Error).message);
       lastError = e as Error;
     }
   }
@@ -340,7 +354,7 @@ export async function asr(body: {
 }): Promise<{ text?: string; [key: string]: unknown }> {
   if (isPublicCloud()) {
     // Use Groq's Whisper API on public clouds if a key is configured
-    if (GROQ_API_KEY && body.file_base64) {
+    if (getGroqApiKey() && body.file_base64) {
       return groqAsr(body.file_base64);
     }
     throw new Error('ASR requires GROQ_API_KEY on public clouds or Z.AI sandbox');
@@ -369,7 +383,7 @@ async function groqAsr(fileBase64: string): Promise<{ text?: string }> {
   formData.append('response_format', 'json');
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${GROQ_API_KEY}` },
+    headers: { 'Authorization': `Bearer ${getGroqApiKey()}` },
     body: formData,
   });
   if (!response.ok) {

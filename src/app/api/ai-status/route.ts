@@ -9,14 +9,16 @@ export const maxDuration = 30;
 // public cloud (Vercel, Cloudflare Pages, Netlify, etc.): if `provider: 'none'`
 // and `working: false`, you need to set the `GROQ_API_KEY` env var.
 export async function GET() {
-  // Detect any public cloud platform (not just Vercel)
+  // Detect any public cloud platform
   const platform = detectPlatform();
   const isPublicCloud = platform !== 'sandbox';
   const hasGroq = !!process.env.GROQ_API_KEY;
 
   let provider: 'zai' | 'groq' | 'none';
-  if (isPublicCloud) {
-    provider = hasGroq ? 'groq' : 'none';
+  if (hasGroq) {
+    provider = 'groq'; // Groq works everywhere, so if the key is set, it's the provider
+  } else if (isPublicCloud) {
+    provider = 'none';
   } else {
     provider = 'zai';
   }
@@ -60,5 +62,7 @@ function detectPlatform(): string {
   if (process.env.VERCEL === '1' || !!process.env.VERCEL_ENV) return 'vercel';
   if (process.env.NETLIFY === 'true') return 'netlify';
   if (process.env.RENDER) return 'render';
+  // Cloudflare Workers: the `caches` global only exists in the Workers runtime
+  if (typeof caches !== 'undefined') return 'cloudflare';
   return 'sandbox';
 }
