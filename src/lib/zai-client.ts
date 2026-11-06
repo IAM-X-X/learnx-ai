@@ -59,10 +59,29 @@ const ZAI_CONFIG: ZaiConfig = {
 
 // Groq provider config (OpenAI-compatible). Get a free key at
 // https://console.groq.com — set as `GROQ_API_KEY` env var.
-// Read at call time (not module load) so Cloudflare Workers runtime env
-// vars are picked up correctly.
-function getGroqApiKey(): string {
-  return process.env.GROQ_API_KEY || '';
+// On Cloudflare Workers, env vars are accessed via getCloudflareContext().
+// On other platforms (sandbox, Vercel, etc.), process.env works directly.
+
+// Lazy-import the Cloudflare context (only available on Cloudflare Workers).
+async function getEnvVar(name: string): Promise<string | undefined> {
+  // Try process.env first (works on Vercel, sandbox, Node.js)
+  if (process.env[name]) return process.env[name];
+
+  // On Cloudflare Workers, env vars are bound through the Worker's env parameter.
+  // OpenNext exposes them via getCloudflareContext().
+  try {
+    const mod = await import('@opennextjs/cloudflare');
+    const ctx = (mod as unknown as { getCloudflareContext?: () => Promise<{ env: Record<string, string> }> | { env: Record<string, string> } }).getCloudflareContext?.();
+    const resolved = await ctx;
+    if (resolved?.env?.[name]) return resolved.env[name] as string;
+  } catch {
+    // Not on Cloudflare or context not available — fall through
+  }
+  return undefined;
+}
+
+async function getGroqApiKey(): Promise<string> {
+  return (await getEnvVar('GROQ_API_KEY')) || '';
 }
 const GROQ_BASE_URL = process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1';
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
@@ -79,10 +98,11 @@ function buildZaiHeaders(cfg: ZaiConfig): Record<string, string> {
   return headers;
 }
 
-function buildGroqHeaders(): Record<string, string> {
+async function buildGroqHeaders(): Promise<Record<string, string>> {
+  const key = await getGroqApiKey();
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${getGroqApiKey()}`,
+    'Authorization': `Bearer ${key}`,
   };
 }
 
@@ -130,7 +150,8 @@ export async function chatCompletions(
   let lastError: Error | null = null;
 
   // Always try Groq first if the key is configured — it works everywhere
-  if (getGroqApiKey()) {
+  const groqKey = await getGroqApiKey();
+  if (groqKey) {
     try {
       return await groqChat(messages, opts);
     } catch (e) {
@@ -147,7 +168,7 @@ export async function chatCompletions(
       console.error('[zai-client] Z.AI chat failed:', (e as Error).message);
       lastError = e as Error;
     }
-  } else if (!getGroqApiKey()) {
+  } else if (!groqKey) {
     lastError = new Error('No AI provider configured. Set GROQ_API_KEY env var (free at https://console.groq.com/keys).');
   }
 
@@ -193,7 +214,7 @@ async function groqChat(
   };
   const response = await fetch(url, {
     method: 'POST',
-    headers: buildGroqHeaders(),
+    headers: await buildGroqHeaders(),
     body: JSON.stringify(body),
   });
   if (!response.ok) {
@@ -215,7 +236,7 @@ export async function chatCompletionsStream(
   let lastError: Error | null = null;
 
   // Always try Groq first if configured
-  if (getGroqApiKey()) {
+  if (await getGroqApiKey()) {
     try {
       return await groqChatStream(messages, opts);
     } catch (e) {
@@ -277,7 +298,7 @@ async function groqChatStream(
   };
   const response = await fetch(url, {
     method: 'POST',
-    headers: buildGroqHeaders(),
+    headers: await buildGroqHeaders(),
     body: JSON.stringify(body),
   });
   if (!response.ok || !response.body) {
@@ -354,7 +375,7 @@ export async function asr(body: {
 }): Promise<{ text?: string; [key: string]: unknown }> {
   if (isPublicCloud()) {
     // Use Groq's Whisper API on public clouds if a key is configured
-    if (getGroqApiKey() && body.file_base64) {
+    if ((await getGroqApiKey()) && body.file_base64) {
       return groqAsr(body.file_base64);
     }
     throw new Error('ASR requires GROQ_API_KEY on public clouds or Z.AI sandbox');
@@ -383,7 +404,7 @@ async function groqAsr(fileBase64: string): Promise<{ text?: string }> {
   formData.append('response_format', 'json');
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${getGroqApiKey()}` },
+    headers: { 'Authorization': `Bearer ${await getGroqApiKey()}` },
     body: formData,
   });
   if (!response.ok) {

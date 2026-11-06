@@ -5,18 +5,26 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 // GET /api/ai-status — quick diagnostic that tells you which AI provider is
-// configured and whether it's actually working. Useful for debugging on any
-// public cloud (Vercel, Cloudflare Pages, Netlify, etc.): if `provider: 'none'`
-// and `working: false`, you need to set the `GROQ_API_KEY` env var.
+// configured and whether it's actually working.
 export async function GET() {
-  // Detect any public cloud platform
   const platform = detectPlatform();
   const isPublicCloud = platform !== 'sandbox';
-  const hasGroq = !!process.env.GROQ_API_KEY;
+
+  // Check Groq key — on Cloudflare Workers, process.env may be empty, so
+  // we also try getCloudflareContext() via the zai-client's getEnvVar.
+  let hasGroq = !!process.env.GROQ_API_KEY;
+  if (!hasGroq) {
+    try {
+      const mod = await import('@opennextjs/cloudflare');
+      const ctx = (mod as unknown as { getCloudflareContext?: () => Promise<{ env: Record<string, string> }> | { env: Record<string, string> } }).getCloudflareContext?.();
+      const resolved = await ctx;
+      hasGroq = !!resolved?.env?.GROQ_API_KEY;
+    } catch { /* not on Cloudflare */ }
+  }
 
   let provider: 'zai' | 'groq' | 'none';
   if (hasGroq) {
-    provider = 'groq'; // Groq works everywhere, so if the key is set, it's the provider
+    provider = 'groq';
   } else if (isPublicCloud) {
     provider = 'none';
   } else {
